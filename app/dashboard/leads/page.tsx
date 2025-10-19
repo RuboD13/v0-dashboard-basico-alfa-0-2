@@ -8,6 +8,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -165,6 +166,11 @@ export default function LeadsPage() {
   const { inmobiliariaId, inmobiliariaNombre, loading: inmobiliariaLoading } = useInmobiliaria() // Added inmobiliariaNombre
 
   const supabase = createClient()
+
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([])
+  const [isBulkSelectionMode, setIsBulkSelectionMode] = useState(false)
+  const [bulkConfirmationOpen, setBulkConfirmationOpen] = useState(false)
+  const [pendingBulkStatus, setPendingBulkStatus] = useState<string | null>(null)
 
   useEffect(() => {
     if (!inmobiliariaLoading && inmobiliariaId !== null) {
@@ -782,6 +788,56 @@ export default function LeadsPage() {
     }
   }
 
+  const updateBulkLeadStatus = async (newStatus: string) => {
+    setPendingBulkStatus(newStatus)
+    setBulkConfirmationOpen(true)
+  }
+
+  const executeBulkStatusChange = async () => {
+    if (!pendingBulkStatus) return
+
+    const { error } = await supabase.from("Clientes").update({ Estado: pendingBulkStatus }).in("id", selectedLeadIds)
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado de los leads",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLeads((prevLeads) =>
+      prevLeads.map((lead) => (selectedLeadIds.includes(lead.id) ? { ...lead, Estado: pendingBulkStatus } : lead)),
+    )
+
+    toast({
+      title: "Estado actualizado",
+      description: `Se actualizó el estado de ${selectedLeadIds.length} lead(s) a ${pendingBulkStatus}`,
+    })
+
+    setSelectedLeadIds([])
+    setIsBulkSelectionMode(false)
+    setBulkConfirmationOpen(false)
+    setPendingBulkStatus(null)
+  }
+
+  const toggleLeadInConfirmation = (leadId: string) => {
+    setSelectedLeadIds((prev) => (prev.includes(leadId) ? prev.filter((id) => id !== leadId) : [...prev, leadId]))
+  }
+
+  const toggleLeadSelection = (leadId: string) => {
+    setSelectedLeadIds((prev) => (prev.includes(leadId) ? prev.filter((id) => id !== leadId) : [...prev, leadId]))
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedLeadIds.length === filteredLeads.length) {
+      setSelectedLeadIds([])
+    } else {
+      setSelectedLeadIds(filteredLeads.map((lead) => lead.id))
+    }
+  }
+
   if (loading || inmobiliariaLoading) {
     return (
       <div className="p-8">
@@ -796,638 +852,1013 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-foreground">Leads</h2>
-            <p className="text-muted-foreground mt-2">Gestión de clientes potenciales</p>
+    <div className="flex h-screen bg-background">
+      {" "}
+      {/* Changed from p-8 */}
+      {/* Sidebar and other layout elements would go here if present */}
+      <main className="flex-1 overflow-auto">
+        {" "}
+        {/* Changed from p-8 */}
+        <div className="p-6">
+          {" "}
+          {/* Changed from p-8 */}
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">Leads</h2>
+              <p className="text-muted-foreground mt-2">Gestión de clientes potenciales</p>
+            </div>
+            <Button onClick={() => setIsNewLeadDialogOpen(true)}>
+              <Users className="h-4 w-4 mr-2" />
+              Nuevo Lead
+            </Button>
           </div>
-          <Button onClick={() => setIsNewLeadDialogOpen(true)}>
-            <Users className="h-4 w-4 mr-2" />
-            Nuevo Lead
-          </Button>
-        </div>
-
-        {/* Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalLeads}</div>
-              <p className="text-xs text-muted-foreground">Últimos 30 días</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nuevos Hoy</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{newLeadsToday}</div>
-              <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completados</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{completedLeads}</div>
-              <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tasa Conversión</CardTitle>
-              <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{conversionRate}%</div>
-              <p className="text-xs text-muted-foreground">Conversión total</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Updated section for Active Advertisements */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Home className="h-4 w-4 text-primary" />
-            <h3 className="text-base font-semibold">Anuncios Activos</h3>
-            <Badge variant="secondary" className="text-xs px-1.5 py-0">
-              {advertisements.filter((ad) => ad.Activacion !== "Archivado").length} anuncios
-            </Badge>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
-            <Card
-              className={`cursor-pointer transition-all hover:shadow-md border-2 px-1 ${
-                selectedAdvertisement === null || selectedAdvertisement === "all"
-                  ? "border-primary bg-primary/5"
-                  : "border-gray-200"
-              }`}
-              onClick={() => {
-                console.log("[v0] Selecting all advertisements")
-                setSelectedAdvertisement(null)
-              }}
-            >
-              {/* CHANGE: Reduced padding from p-1 to p-0.5 for more compact cards */}
-              <CardContent className="p-0.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="font-medium">Todos los Anuncios</p>
-                    <p className="text-[10px] text-muted-foreground">Ver todos los leads</p>
-                  </div>
-                  <Building className="h-6 w-6 text-primary flex-shrink-0" />
-                </div>
+          {/* Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+            {" "}
+            {/* Added mt-8 */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalLeads}</div>
+                <p className="text-xs text-muted-foreground">Últimos 30 días</p>
               </CardContent>
             </Card>
-
-            {advertisements
-              .filter((ad) => ad.Activacion !== "Archivado")
-              .map((ad) => {
-                const isPaused = ad.Activacion === "Pausado"
-                const isActive = ad.Activacion === "Activo"
-
-                return (
-                  <Card
-                    key={ad.ida}
-                    className={`cursor-pointer transition-all hover:shadow-md border-2 px-5 ${
-                      selectedAdvertisement === ad.ida
-                        ? "border-primary bg-primary/5"
-                        : isPaused
-                          ? "border-gray-300 bg-gray-100 opacity-60"
-                          : "border-gray-200"
-                    }`}
-                    onClick={() => handleAdvertisementClick(ad)}
-                  >
-                    {/* CHANGE: Reduced padding from p-1 to p-0.5 for more compact cards */}
-                    <CardContent className="p-0.5">
-                      <div className="space-y-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1">
-                            <p className={`font-medium text-base ${isPaused ? "text-gray-500" : ""}`}>
-                              {ad.Referencia || "Sin referencia"}
-                            </p>
-                            {isPaused && (
-                              <Badge
-                                variant="secondary"
-                                className="text-[8px] px-1 py-0 h-3 bg-yellow-100 text-yellow-800"
-                              >
-                                Pausado
-                              </Badge>
-                            )}
-                          </div>
-                          <Home className={`h-6 w-6 flex-shrink-0 ${isPaused ? "text-gray-400" : "text-primary"}`} />
-                        </div>
-                        <p
-                          className={`text-[10px] truncate pl-0 ${isPaused ? "text-gray-400" : "text-muted-foreground"}`}
-                        >
-                          {ad.Direccion || "Sin dirección"}
-                        </p>
-                        <div className="flex items-center justify-between pl-0">
-                          <span className={`text-[10px] font-medium ${isPaused ? "text-gray-500" : "text-green-600"}`}>
-                            {formatCurrency(ad.Precio)}
-                          </span>
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">
-                            {ad.Portal || "Portal"}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Nuevos Hoy</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{newLeadsToday}</div>
+                <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completados</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{completedLeads}</div>
+                <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Tasa Conversión</CardTitle>
+                <Star className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">{conversionRate}%</div>
+                <p className="text-xs text-muted-foreground">Conversión total</p>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre, email o inmueble..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filtrar por estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los estados</SelectItem>
-              {availableStatuses.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status === "Pedir Aval" ? "Aval Pedido" : status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Leads List */}
-        {error ? (
-          <Card className="border-red-200">
-            <CardHeader>
-              <CardTitle className="text-red-600">Error al cargar leads</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-red-600">{error}</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-3">
-            {filteredLeads.length > 0 ? (
-              filteredLeads.map((lead) => {
-                const isComplete = isLeadComplete(lead)
-                const isDescartado = lead.Estado === "Descartado"
-                const isAceptado = lead.Estado === "Aceptado"
-                const completionPercentage = calculateDataCompleteness(lead)
-                const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
-                const personaCount = countPersonas(lead)
-
-                return (
-                  <Card
-                    key={lead.id}
-                    className={`hover:shadow-md transition-all cursor-pointer ${
-                      isDescartado
-                        ? "opacity-40 bg-gray-50 border-gray-300"
-                        : isAceptado
-                          ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
-                          : isDataComplete
-                            ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
-                            : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
-                    }`}
-                    onClick={() => openLeadDetail(lead)}
-                  >
-                    <CardContent className="p-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="relative w-8 h-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center flex-shrink-0">
-                            {personaCount === 1 ? (
-                              <User className="h-4 w-4 text-primary" />
-                            ) : (
-                              <Users className="h-4 w-4 text-primary" />
-                            )}
-                            {personaCount > 1 && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                                {personaCount}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-sm truncate">{lead.Nombre || "Sin nombre"}</h3>
-
-                              <div className="flex items-center gap-1.5">
-                                {lead.Estado === "Aceptado" && (
-                                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
-                                    <span className="text-xs font-semibold text-emerald-800">✓ Aprobado</span>
-                                    <div className="h-3 w-px bg-emerald-400" />
-                                    <div className="flex items-center gap-0.5">
-                                      <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                      <span className="text-xs font-semibold text-emerald-700">
-                                        {completionPercentage}%
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                                {lead.Estado !== "Aceptado" && isDataComplete && (
-                                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
-                                    <span className="text-xs font-semibold text-green-800">✓ Completo</span>
-                                    <div className="h-3 w-px bg-green-400" />
-                                    <div className="flex items-center gap-0.5">
-                                      <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                      <span className="text-xs font-semibold text-green-700">
-                                        {completionPercentage}%
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                                {lead.Estado !== "Aceptado" && !isDataComplete && (
-                                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
-                                    <span className="text-xs font-semibold text-amber-800">Incompleto</span>
-                                    <div className="h-3 w-px bg-amber-400" />
-                                    <div className="flex items-center gap-0.5">
-                                      <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                      <span className="text-xs font-semibold text-amber-700">
-                                        {completionPercentage}%
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-0 text-xs text-muted-foreground mb-2">
-                              <div className="flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                <span className="truncate">{lead.Correo || "Sin email"}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                <span>{lead.Telefono || "Sin teléfono"}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Building className="h-3 w-3" />
-                                <span className="truncate">{lead.Inmueble || "Sin inmueble"}</span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 text-xs">
-                              <div className="flex items-center gap-1 text-green-600">
-                                <Euro className="h-3 w-3" />
-                                <span className="font-medium">
-                                  {formatCurrency(
-                                    (lead.Ingresos || 0) + (lead.Ingresos_2 || 0) + (lead.Ingresos_3 || 0),
-                                  )}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Clock className="h-3 w-3" />
-                                <span>{formatDate(lead.created_at)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Quick Actions */}
-                        <TooltipProvider>
-                          <div className="flex items-center gap-1 ml-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-6 w-6 p-0 bg-transparent"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (lead.Correo) {
-                                      window.open(`mailto:${lead.Correo}`, "_blank")
-                                    }
-                                  }}
-                                  disabled={!lead.Correo}
-                                >
-                                  <Mail className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Enviar correo</p>
-                              </TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-6 w-6 p-0 bg-transparent"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (lead.Telefono) {
-                                      window.open(`https://wa.me/${lead.Telefono.replace(/\D/g, "")}`, "_blank")
-                                    }
-                                  }}
-                                  disabled={!lead.Telefono}
-                                >
-                                  <WhatsAppIcon className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Contactar por WhatsApp</p>
-                              </TooltipContent>
-                            </Tooltip>
-
-                            <DropdownMenu>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-6 w-6 p-0 bg-transparent"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                      }}
-                                    >
-                                      <MoreVertical className="h-3 w-3" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Cambiar estado</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    updateLeadStatus(lead.id, "Pendiente")
-                                  }}
-                                >
-                                  Pendiente
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    updateLeadStatus(lead.id, "Validado")
-                                  }}
-                                >
-                                  Validado
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    updateLeadStatus(lead.id, "Completado")
-                                  }}
-                                >
-                                  Completado
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    updateLeadStatus(lead.id, "Rechazado")
-                                  }}
-                                >
-                                  Rechazado
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    updateLeadStatus(lead.id, "Aceptado")
-                                  }}
-                                >
-                                  Aceptado
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    updateLeadStatus(lead.id, "Descartado")
-                                  }}
-                                >
-                                  Descartado
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TooltipProvider>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })
-            ) : (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No hay leads disponibles</h3>
-                  <p className="text-muted-foreground">
-                    {searchTerm || statusFilter !== "all" || selectedAdvertisement
-                      ? "No se encontraron leads con los filtros aplicados"
-                      : "Los leads aparecerán aquí una vez que estén registrados en la base de datos"}
-                  </p>
+          {/* Updated section for Active Advertisements */}
+          <div className="mt-8 space-y-2">
+            {" "}
+            {/* Added mt-8 */}
+            <div className="flex items-center gap-1.5">
+              <Home className="h-4 w-4 text-primary" />
+              <h3 className="text-base font-semibold">Anuncios Activos</h3>
+              <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                {advertisements.filter((ad) => ad.Activacion !== "Archivado").length} anuncios
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
+              <Card
+                className={`cursor-pointer transition-all hover:shadow-md border-2 px-1 ${
+                  selectedAdvertisement === null || selectedAdvertisement === "all"
+                    ? "border-primary bg-primary/5"
+                    : "border-gray-200"
+                }`}
+                onClick={() => {
+                  console.log("[v0] Selecting all advertisements")
+                  setSelectedAdvertisement(null)
+                }}
+              >
+                {/* CHANGE: Reduced padding from p-1 to p-0.5 for more compact cards */}
+                <CardContent className="p-0.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium">Todos los Anuncios</p>
+                      <p className="text-[10px] text-muted-foreground">Ver todos los leads</p>
+                    </div>
+                    <Building className="h-6 w-6 text-primary flex-shrink-0" />
+                  </div>
                 </CardContent>
               </Card>
-            )}
+
+              {advertisements
+                .filter((ad) => ad.Activacion !== "Archivado")
+                .map((ad) => {
+                  const isPaused = ad.Activacion === "Pausado"
+                  const isActive = ad.Activacion === "Activo"
+
+                  return (
+                    <Card
+                      key={ad.ida}
+                      className={`cursor-pointer transition-all hover:shadow-md border-2 px-5 ${
+                        selectedAdvertisement === ad.ida
+                          ? "border-primary bg-primary/5"
+                          : isPaused
+                            ? "border-gray-300 bg-gray-100 opacity-60"
+                            : "border-gray-200"
+                      }`}
+                      onClick={() => handleAdvertisementClick(ad)}
+                    >
+                      {/* CHANGE: Reduced padding from p-1 to p-0.5 for more compact cards */}
+                      <CardContent className="p-0.5">
+                        <div className="space-y-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1">
+                              <p className={`font-medium text-base ${isPaused ? "text-gray-500" : ""}`}>
+                                {ad.Referencia || "Sin referencia"}
+                              </p>
+                              {isPaused && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[8px] px-1 py-0 h-3 bg-yellow-100 text-yellow-800"
+                                >
+                                  Pausado
+                                </Badge>
+                              )}
+                            </div>
+                            <Home className={`h-6 w-6 flex-shrink-0 ${isPaused ? "text-gray-400" : "text-primary"}`} />
+                          </div>
+                          <p
+                            className={`text-[10px] truncate pl-0 ${isPaused ? "text-gray-400" : "text-muted-foreground"}`}
+                          >
+                            {ad.Direccion || "Sin dirección"}
+                          </p>
+                          <div className="flex items-center justify-between pl-0">
+                            <span
+                              className={`text-[10px] font-medium ${isPaused ? "text-gray-500" : "text-green-600"}`}
+                            >
+                              {formatCurrency(ad.Precio)}
+                            </span>
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">
+                              {ad.Portal || "Portal"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+            </div>
           </div>
-        )}
+          {/* Filters */}
+          <div className="mt-8 flex flex-col sm:flex-row gap-4">
+            {" "}
+            {/* Added mt-8 */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre, email o inmueble..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filtrar por estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                {availableStatuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status === "Pedir Aval" ? "Aval Pedido" : status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <MoreVertical className="h-4 w-4 mr-2" />
+                    Acciones
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsBulkSelectionMode(!isBulkSelectionMode)
+                      if (isBulkSelectionMode) {
+                        setSelectedLeadIds([])
+                      }
+                    }}
+                    className="font-medium text-blue-600"
+                  >
+                    <Checkbox checked={isBulkSelectionMode} className="mr-2" />
+                    Selección Múltiple
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          {/* Leads List */}
+          {isBulkSelectionMode ? (
+            <Card className="mt-8">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {filteredLeads.length > 0 && (
+                      <Checkbox
+                        checked={selectedLeadIds.length === filteredLeads.length && filteredLeads.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Seleccionar todos"
+                      />
+                    )}
+                    <CardTitle>Leads ({filteredLeads.length})</CardTitle>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {selectedLeadIds.length > 0 && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium">
+                        {selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? "s" : ""} seleccionado
+                        {selectedLeadIds.length > 1 ? "s" : ""}
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            Cambiar estado
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Pendiente")}>
+                            Pendiente
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Validado")}>Validado</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Completado")}>
+                            Completado
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Rechazado")}>
+                            Rechazado
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Aceptado")}>Aceptado</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Descartado")}>
+                            Descartado
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedLeadIds([])}>
+                      Limpiar selección
+                    </Button>
+                  </div>
+                )}
 
-        {/* Lead Detail Dialog */}
-        {selectedLead && (
-          <>
-            {/* Backdrop overlay */}
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
-                zIndex: 50,
-              }}
-              onClick={() => setSelectedLead(null)}
-            />
+                {error ? (
+                  <Card className="border-red-200">
+                    <CardHeader>
+                      <CardTitle className="text-red-600">Error al cargar leads</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-red-600">{error}</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid gap-3">
+                    {filteredLeads.length > 0 ? (
+                      filteredLeads.map((lead) => {
+                        const isComplete = isLeadComplete(lead)
+                        const isDescartado = lead.Estado === "Descartado"
+                        const isAceptado = lead.Estado === "Aceptado"
+                        const completionPercentage = calculateDataCompleteness(lead)
+                        const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
+                        const personaCount = countPersonas(lead)
 
-            {/* Modal content */}
-            <div
-              style={{
-                position: "fixed",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                zIndex: 51,
-                backgroundColor: "white",
-                borderRadius: "8px",
-                maxWidth: "1200px",
-                width: "95vw",
-                maxHeight: "90vh",
-                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                flexDirection: "column",
-                height: "100%",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: "flex", flexDirection: "column", height: "100%", maxWidth: "100%" }}>
-                {/* Header */}
+                        // Add checkbox for individual selection
+                        const isSelected = selectedLeadIds.includes(lead.id)
+
+                        return (
+                          <Card
+                            key={lead.id}
+                            className={`hover:shadow-md transition-all cursor-pointer ${
+                              isSelected // Highlight selected leads
+                                ? "ring-2 ring-primary ring-offset-2"
+                                : ""
+                            } ${
+                              isDescartado
+                                ? "opacity-40 bg-gray-50 border-gray-300"
+                                : isAceptado
+                                  ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
+                                  : isDataComplete
+                                    ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
+                                    : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
+                            }`}
+                            onClick={() => openLeadDetail(lead)}
+                          >
+                            <CardContent className="p-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 flex-1">
+                                  {isBulkSelectionMode && (
+                                    <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={() => toggleLeadSelection(lead.id)}
+                                        className="mr-3"
+                                      />
+                                    </div>
+                                  )}
+
+                                  <div className="relative w-8 h-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center flex-shrink-0">
+                                    {personaCount === 1 ? (
+                                      <User className="h-4 w-4 text-primary" />
+                                    ) : (
+                                      <Users className="h-4 w-4 text-primary" />
+                                    )}
+                                    {personaCount > 1 && (
+                                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                        {personaCount}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h3 className="font-semibold text-sm truncate">{lead.Nombre || "Sin nombre"}</h3>
+
+                                      <div className="flex items-center gap-1.5">
+                                        {lead.Estado === "Aceptado" && (
+                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
+                                            <span className="text-xs font-semibold text-emerald-800">✓ Aprobado</span>
+                                            <div className="h-3 w-px bg-emerald-400" />
+                                            <div className="flex items-center gap-0.5">
+                                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                              <span className="text-xs font-semibold text-emerald-700">
+                                                {completionPercentage}%
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {lead.Estado !== "Aceptado" && isDataComplete && (
+                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
+                                            <span className="text-xs font-semibold text-green-800">✓ Completo</span>
+                                            <div className="h-3 w-px bg-green-400" />
+                                            <div className="flex items-center gap-0.5">
+                                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                              <span className="text-xs font-semibold text-green-700">
+                                                {completionPercentage}%
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {lead.Estado !== "Aceptado" && !isDataComplete && (
+                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
+                                            <span className="text-xs font-semibold text-amber-800">Incompleto</span>
+                                            <div className="h-3 w-px bg-amber-400" />
+                                            <div className="flex items-center gap-0.5">
+                                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                              <span className="text-xs font-semibold text-amber-700">
+                                                {completionPercentage}%
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-0 text-xs text-muted-foreground mb-2">
+                                      <div className="flex items-center gap-1">
+                                        <Mail className="h-3 w-3" />
+                                        <span className="truncate">{lead.Correo || "Sin email"}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Phone className="h-3 w-3" />
+                                        <span>{lead.Telefono || "Sin teléfono"}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Building className="h-3 w-3" />
+                                        <span className="truncate">{lead.Inmueble || "Sin inmueble"}</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 text-xs">
+                                      <div className="flex items-center gap-1 text-green-600">
+                                        <Euro className="h-3 w-3" />
+                                        <span className="font-medium">
+                                          {formatCurrency(
+                                            (lead.Ingresos || 0) + (lead.Ingresos_2 || 0) + (lead.Ingresos_3 || 0),
+                                          )}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1 text-muted-foreground">
+                                        <Clock className="h-3 w-3" />
+                                        <span>{formatDate(lead.created_at)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Quick Actions */}
+                                <TooltipProvider>
+                                  <div className="flex items-center gap-1 ml-2">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-6 w-6 p-0 bg-transparent"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            if (lead.Correo) {
+                                              window.open(`mailto:${lead.Correo}`, "_blank")
+                                            }
+                                          }}
+                                          disabled={!lead.Correo}
+                                        >
+                                          <Mail className="h-3 w-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Enviar correo</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-6 w-6 p-0 bg-transparent"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            if (lead.Telefono) {
+                                              window.open(`https://wa.me/${lead.Telefono.replace(/\D/g, "")}`, "_blank")
+                                            }
+                                          }}
+                                          disabled={!lead.Telefono}
+                                        >
+                                          <WhatsAppIcon className="h-3 w-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Contactar por WhatsApp</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+
+                                    <DropdownMenu>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 w-6 p-0 bg-transparent"
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                              }}
+                                            >
+                                              <MoreVertical className="h-3 w-3" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Cambiar estado</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            updateLeadStatus(lead.id, "Pendiente")
+                                          }}
+                                        >
+                                          Pendiente
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            updateLeadStatus(lead.id, "Validado")
+                                          }}
+                                        >
+                                          Validado
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            updateLeadStatus(lead.id, "Completado")
+                                          }}
+                                        >
+                                          Completado
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            updateLeadStatus(lead.id, "Rechazado")
+                                          }}
+                                        >
+                                          Rechazado
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            updateLeadStatus(lead.id, "Aceptado")
+                                          }}
+                                        >
+                                          Aceptado
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            updateLeadStatus(lead.id, "Descartado")
+                                          }}
+                                        >
+                                          Descartado
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </TooltipProvider>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })
+                    ) : (
+                      <Card>
+                        <CardContent className="p-8 text-center">
+                          <p className="text-muted-foreground">No se encontraron leads</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="mt-8">
+              {error ? (
+                <Card className="border-red-200">
+                  <CardHeader>
+                    <CardTitle className="text-red-600">Error al cargar leads</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-red-600">{error}</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-3">
+                  {filteredLeads.length > 0 ? (
+                    filteredLeads.map((lead) => {
+                      const isComplete = isLeadComplete(lead)
+                      const isDescartado = lead.Estado === "Descartado"
+                      const isAceptado = lead.Estado === "Aceptado"
+                      const completionPercentage = calculateDataCompleteness(lead)
+                      const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
+                      const personaCount = countPersonas(lead)
+                      const isSelected = selectedLeadIds.includes(lead.id)
+
+                      return (
+                        <Card
+                          key={lead.id}
+                          className={`hover:shadow-md transition-all cursor-pointer ${
+                            isDescartado
+                              ? "opacity-40 bg-gray-50 border-gray-300"
+                              : isAceptado
+                                ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
+                                : isDataComplete
+                                  ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
+                                  : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
+                          }`}
+                          onClick={() => openLeadDetail(lead)}
+                        >
+                          <CardContent className="p-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1">
+                                {isBulkSelectionMode && (
+                                  <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onCheckedChange={() => toggleLeadSelection(lead.id)}
+                                      className="mr-3"
+                                    />
+                                  </div>
+                                )}
+
+                                <div className="relative w-8 h-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center flex-shrink-0">
+                                  {personaCount === 1 ? (
+                                    <User className="h-4 w-4 text-primary" />
+                                  ) : (
+                                    <Users className="h-4 w-4 text-primary" />
+                                  )}
+                                  {personaCount > 1 && (
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                      {personaCount}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-semibold text-sm truncate">{lead.Nombre || "Sin nombre"}</h3>
+
+                                    <div className="flex items-center gap-1.5">
+                                      {lead.Estado === "Aceptado" && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
+                                          <span className="text-xs font-semibold text-emerald-800">✓ Aprobado</span>
+                                          <div className="h-3 w-px bg-emerald-400" />
+                                          <div className="flex items-center gap-0.5">
+                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                            <span className="text-xs font-semibold text-emerald-700">
+                                              {completionPercentage}%
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+                                      {lead.Estado !== "Aceptado" && isDataComplete && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
+                                          <span className="text-xs font-semibold text-green-800">✓ Completo</span>
+                                          <div className="h-3 w-px bg-green-400" />
+                                          <div className="flex items-center gap-0.5">
+                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                            <span className="text-xs font-semibold text-green-700">
+                                              {completionPercentage}%
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+                                      {lead.Estado !== "Aceptado" && !isDataComplete && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
+                                          <span className="text-xs font-semibold text-amber-800">Incompleto</span>
+                                          <div className="h-3 w-px bg-amber-400" />
+                                          <div className="flex items-center gap-0.5">
+                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                            <span className="text-xs font-semibold text-amber-700">
+                                              {completionPercentage}%
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-0 text-xs text-muted-foreground mb-2">
+                                    <div className="flex items-center gap-1">
+                                      <Mail className="h-3 w-3" />
+                                      <span className="truncate">{lead.Correo || "Sin email"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Phone className="h-3 w-3" />
+                                      <span>{lead.Telefono || "Sin teléfono"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Building className="h-3 w-3" />
+                                      <span className="truncate">{lead.Inmueble || "Sin inmueble"}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-3 text-xs">
+                                    <div className="flex items-center gap-1 text-green-600">
+                                      <Euro className="h-3 w-3" />
+                                      <span className="font-medium">
+                                        {formatCurrency(
+                                          (lead.Ingresos || 0) + (lead.Ingresos_2 || 0) + (lead.Ingresos_3 || 0),
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-muted-foreground">
+                                      <Clock className="h-3 w-3" />
+                                      <span>{formatDate(lead.created_at)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Quick Actions */}
+                              <TooltipProvider>
+                                <div className="flex items-center gap-1 ml-2">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0 bg-transparent"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          if (lead.Correo) {
+                                            window.open(`mailto:${lead.Correo}`, "_blank")
+                                          }
+                                        }}
+                                        disabled={!lead.Correo}
+                                      >
+                                        <Mail className="h-3 w-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Enviar correo</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0 bg-transparent"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          if (lead.Telefono) {
+                                            window.open(`https://wa.me/${lead.Telefono.replace(/\D/g, "")}`, "_blank")
+                                          }
+                                        }}
+                                        disabled={!lead.Telefono}
+                                      >
+                                        <WhatsAppIcon className="h-3 w-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Contactar por WhatsApp</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <DropdownMenu>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 w-6 p-0 bg-transparent"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                            }}
+                                          >
+                                            <MoreVertical className="h-3 w-3" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Cambiar estado</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          updateLeadStatus(lead.id, "Pendiente")
+                                        }}
+                                      >
+                                        Pendiente
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          updateLeadStatus(lead.id, "Validado")
+                                        }}
+                                      >
+                                        Validado
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          updateLeadStatus(lead.id, "Completado")
+                                        }}
+                                      >
+                                        Completado
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          updateLeadStatus(lead.id, "Rechazado")
+                                        }}
+                                      >
+                                        Rechazado
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          updateLeadStatus(lead.id, "Aceptado")
+                                        }}
+                                      >
+                                        Aceptado
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          updateLeadStatus(lead.id, "Descartado")
+                                        }}
+                                      >
+                                        Descartado
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TooltipProvider>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })
+                  ) : (
+                    <Card>
+                      <CardContent className="p-8 text-center">
+                        <p className="text-muted-foreground">No se encontraron leads</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+      {/* Lead Detail Dialog */}
+      {selectedLead && (
+        <>
+          {/* Backdrop overlay */}
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 50,
+            }}
+            onClick={() => setSelectedLead(null)}
+          />
+
+          {/* Modal content */}
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 51,
+              backgroundColor: "white",
+              borderRadius: "8px",
+              maxWidth: "1200px",
+              width: "95vw",
+              maxHeight: "90vh",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", flexDirection: "column", height: "100%", maxWidth: "100%" }}>
+              {/* Header */}
+              <div
+                style={{
+                  borderBottom: "1px solid #e5e7eb",
+                  padding: "1.25rem 1.5rem",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "baseline", gap: "1rem", flexWrap: "wrap" }}>
+                  <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", margin: 0 }}>
+                    {selectedLead.Nombre || "Sin nombre"}
+                  </h1>
+                  <span style={{ fontSize: "0.95rem", color: "#6b7280", fontWeight: "400" }}>
+                    | {selectedLead.Inmueble || "Sin inmueble"}
+                  </span>
+                  <span style={{ fontSize: "0.75rem", color: "#9ca3af", marginLeft: "0.5rem" }}>
+                    ID: {selectedLead.id}
+                  </span>
+                </div>
+                <button
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#9ca3af",
+                    cursor: "pointer",
+                    padding: "0.25rem",
+                  }}
+                  onClick={() => setSelectedLead(null)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Actions Bar */}
+              <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid #e5e7eb", flexShrink: 0 }}>
                 <div
                   style={{
-                    borderBottom: "1px solid #e5e7eb",
-                    padding: "1.25rem 1.5rem",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    flexShrink: 0,
+                    flexWrap: "wrap",
+                    gap: "0.5rem",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "baseline", gap: "1rem", flexWrap: "wrap" }}>
-                    <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", margin: 0 }}>
-                      {selectedLead.Nombre || "Sin nombre"}
-                    </h1>
-                    <span style={{ fontSize: "0.95rem", color: "#6b7280", fontWeight: "400" }}>
-                      | {selectedLead.Inmueble || "Sin inmueble"}
-                    </span>
-                    <span style={{ fontSize: "0.75rem", color: "#9ca3af", marginLeft: "0.5rem" }}>
-                      ID: {selectedLead.id}
-                    </span>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <button
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        padding: "0.5rem 1rem",
+                        backgroundColor: "transparent",
+                        color: "#6b7280",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "6px",
+                        fontSize: "0.875rem",
+                        fontWeight: "400",
+                        cursor: selectedLead.Telefono ? "pointer" : "not-allowed",
+                        opacity: selectedLead.Telefono ? 1 : 0.5,
+                      }}
+                      onClick={() => {
+                        if (selectedLead.Telefono) {
+                          window.open(`https://wa.me/${selectedLead.Telefono.replace(/\D/g, "")}`, "_blank")
+                        }
+                      }}
+                      disabled={!selectedLead.Telefono}
+                    >
+                      <Phone size={16} />
+                      WhatsApp
+                    </button>
+                    <button
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        padding: "0.5rem 1rem",
+                        backgroundColor: "transparent",
+                        color: "#6b7280",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "6px",
+                        fontSize: "0.875rem",
+                        fontWeight: "400",
+                        cursor: selectedLead.Correo ? "pointer" : "not-allowed",
+                        opacity: selectedLead.Correo ? 1 : 0.5,
+                      }}
+                      onClick={() => {
+                        if (selectedLead.Correo) {
+                          window.open(`mailto:${selectedLead.Correo}`, "_blank")
+                        }
+                      }}
+                      disabled={!selectedLead.Correo}
+                    >
+                      <Mail size={16} />
+                      Correo
+                    </button>
                   </div>
-                  <button
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#9ca3af",
-                      cursor: "pointer",
-                      padding: "0.25rem",
-                    }}
-                    onClick={() => setSelectedLead(null)}
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                {/* Actions Bar */}
-                <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid #e5e7eb", flexShrink: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      <button
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          padding: "0.5rem 1rem",
-                          backgroundColor: "transparent",
-                          color: "#6b7280",
-                          border: "1px solid #d1d5db",
-                          borderRadius: "6px",
-                          fontSize: "0.875rem",
-                          fontWeight: "400",
-                          cursor: selectedLead.Telefono ? "pointer" : "not-allowed",
-                          opacity: selectedLead.Telefono ? 1 : 0.5,
-                        }}
-                        onClick={() => {
-                          if (selectedLead.Telefono) {
-                            window.open(`https://wa.me/${selectedLead.Telefono.replace(/\D/g, "")}`, "_blank")
-                          }
-                        }}
-                        disabled={!selectedLead.Telefono}
-                      >
-                        <Phone size={16} />
-                        WhatsApp
-                      </button>
-                      <button
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          padding: "0.5rem 1rem",
-                          backgroundColor: "transparent",
-                          color: "#6b7280",
-                          border: "1px solid #d1d5db",
-                          borderRadius: "6px",
-                          fontSize: "0.875rem",
-                          fontWeight: "400",
-                          cursor: selectedLead.Correo ? "pointer" : "not-allowed",
-                          opacity: selectedLead.Correo ? 1 : 0.5,
-                        }}
-                        onClick={() => {
-                          if (selectedLead.Correo) {
-                            window.open(`mailto:${selectedLead.Correo}`, "_blank")
-                          }
-                        }}
-                        disabled={!selectedLead.Correo}
-                      >
-                        <Mail size={16} />
-                        Correo
-                      </button>
-                    </div>
-                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      <LeadApproveWrapper
-                        lead={selectedLead}
-                        updateLeadStatus={updateLeadStatus}
-                        onLeadUpdated={(updatedLead) => setSelectedLead(updatedLead)}
-                      />
-                      <button
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          padding: "0.5rem 1rem",
-                          backgroundColor: "transparent",
-                          color: "#6b7280",
-                          border: "1px solid #d1d5db",
-                          borderRadius: "6px",
-                          fontSize: "0.875rem",
-                          fontWeight: "400",
-                          cursor: "pointer",
-                        }}
-                        onClick={async () => {
-                          if (selectedLead) {
-                            await updateLeadStatus(selectedLead.id, "Descartado")
-                            setSelectedLead({ ...selectedLead, Estado: "Descartado" })
-                            toast({
-                              title: "Candidato denegado",
-                              description: "El estado ha sido cambiado a Descartado",
-                            })
-                          }
-                        }}
-                      >
-                        <XCircle size={16} />
-                        Denegar Candidato
-                      </button>
-                    </div>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <LeadApproveWrapper
+                      lead={selectedLead}
+                      updateLeadStatus={updateLeadStatus}
+                      onLeadUpdated={(updatedLead) => setSelectedLead(updatedLead)}
+                    />
+                    <button
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        padding: "0.5rem 1rem",
+                        backgroundColor: "transparent",
+                        color: "#6b7280",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "6px",
+                        fontSize: "0.875rem",
+                        fontWeight: "400",
+                        cursor: "pointer",
+                      }}
+                      onClick={async () => {
+                        if (selectedLead) {
+                          await updateLeadStatus(selectedLead.id, "Descartado")
+                          setSelectedLead({ ...selectedLead, Estado: "Descartado" })
+                          toast({
+                            title: "Candidato denegado",
+                            description: "El estado ha sido cambiado a Descartado",
+                          })
+                        }
+                      }}
+                    >
+                      <XCircle size={16} />
+                      Denegar Candidato
+                    </button>
                   </div>
                 </div>
+              </div>
 
-                {/* Content - Scrollable */}
-                <div style={{ flex: 1, overflow: "auto", padding: "1.5rem" }}>
-                  <div style={{ display: "flex", gap: "1.5rem", minHeight: "100%" }}>
-                    {/* Left Column */}
-                    <div style={{ flex: "2", display: "flex", flexDirection: "column", gap: "1.25rem", minWidth: 0 }}>
-                      {/* Vintage File Folder Tabs */}
-                      {(selectedLead?.Persona_2 || selectedLead?.Persona_3) && (
-                        <div className="flex gap-1 mb-0">
-                          {/* Persona 1 Tab */}
-                          <button
-                            onClick={() => setSelectedPersona(1)}
-                            className={`
+              {/* Content - Scrollable */}
+              <div style={{ flex: 1, overflow: "auto", padding: "1.5rem" }}>
+                <div style={{ display: "flex", gap: "1.5rem", minHeight: "100%" }}>
+                  {/* Left Column */}
+                  <div style={{ flex: "2", display: "flex", flexDirection: "column", gap: "1.25rem", minWidth: 0 }}>
+                    {/* Vintage File Folder Tabs */}
+                    {(selectedLead?.Persona_2 || selectedLead?.Persona_3) && (
+                      <div className="flex gap-1 mb-0">
+                        {/* Persona 1 Tab */}
+                        <button
+                          onClick={() => setSelectedPersona(1)}
+                          className={`
                               relative px-6 py-2.5 text-sm font-medium
                               border border-border rounded-t-lg
                               transition-all duration-200
@@ -1437,18 +1868,18 @@ export default function LeadsPage() {
                                   : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                               }
                             `}
-                          >
-                            <span className="tracking-wide">{selectedLead?.Nombre || "Persona 1"}</span>
-                            {selectedPersona === 1 && (
-                              <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
-                            )}
-                          </button>
+                        >
+                          <span className="tracking-wide">{selectedLead?.Nombre || "Persona 1"}</span>
+                          {selectedPersona === 1 && (
+                            <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
+                          )}
+                        </button>
 
-                          {/* Persona 2 Tab */}
-                          {selectedLead?.Persona_2 && (
-                            <button
-                              onClick={() => setSelectedPersona(2)}
-                              className={`
+                        {/* Persona 2 Tab */}
+                        {selectedLead?.Persona_2 && (
+                          <button
+                            onClick={() => setSelectedPersona(2)}
+                            className={`
                                 relative px-6 py-2.5 text-sm font-medium
                                 border border-border rounded-t-lg
                                 transition-all duration-200
@@ -1458,19 +1889,19 @@ export default function LeadsPage() {
                                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                                 }
                               `}
-                            >
-                              <span className="tracking-wide">{selectedLead.Persona_2}</span>
-                              {selectedPersona === 2 && (
-                                <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
-                              )}
-                            </button>
-                          )}
+                          >
+                            <span className="tracking-wide">{selectedLead.Persona_2}</span>
+                            {selectedPersona === 2 && (
+                              <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
+                            )}
+                          </button>
+                        )}
 
-                          {/* Persona 3 Tab */}
-                          {selectedLead?.Persona_3 && (
-                            <button
-                              onClick={() => setSelectedPersona(3)}
-                              className={`
+                        {/* Persona 3 Tab */}
+                        {selectedLead?.Persona_3 && (
+                          <button
+                            onClick={() => setSelectedPersona(3)}
+                            className={`
                                 relative px-6 py-2.5 text-sm font-medium
                                 border border-border rounded-t-lg
                                 transition-all duration-200
@@ -1480,603 +1911,209 @@ export default function LeadsPage() {
                                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                                 }
                               `}
-                            >
-                              <span className="tracking-wide">{selectedLead.Persona_3}</span>
-                              {selectedPersona === 3 && (
-                                <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      )}
+                          >
+                            <span className="tracking-wide">{selectedLead.Persona_3}</span>
+                            {selectedPersona === 3 && (
+                              <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    )}
 
-                      {selectedPersona === 1 && (
-                        <div
-                          className={`
+                    {selectedPersona === 1 && (
+                      <div
+                        className={`
                             border border-border bg-background p-5 shadow-sm
                             ${selectedLead?.Persona_2 || selectedLead?.Persona_3 ? "rounded-tr-lg rounded-b-lg" : "rounded-lg"}
                           `}
-                        >
-                          <div className="flex justify-between items-center mb-5">
-                            <div className="flex flex-col gap-1">
-                              <h2 className="text-lg font-semibold">Información Personal</h2>
-                            </div>
-                            {!isEditingPersonalInfo ? (
+                      >
+                        <div className="flex justify-between items-center mb-5">
+                          <div className="flex flex-col gap-1">
+                            <h2 className="text-lg font-semibold">Información Personal</h2>
+                          </div>
+                          {!isEditingPersonalInfo ? (
+                            <button
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                background: "none",
+                                border: "none",
+                                fontSize: "0.875rem",
+                                color: "#6b7280",
+                                cursor: "pointer",
+                              }}
+                              onClick={() => setIsEditingPersonalInfo(true)}
+                            >
+                              <Edit size={14} />
+                              Editar
+                            </button>
+                          ) : (
+                            <div style={{ display: "flex", gap: "0.5rem" }}>
                               <button
                                 style={{
                                   display: "flex",
                                   alignItems: "center",
                                   gap: "0.5rem",
-                                  background: "none",
+                                  padding: "0.375rem 0.75rem",
+                                  backgroundColor: "#10b981",
+                                  color: "white",
                                   border: "none",
+                                  borderRadius: "6px",
                                   fontSize: "0.875rem",
-                                  color: "#6b7280",
                                   cursor: "pointer",
+                                  fontWeight: "500",
                                 }}
-                                onClick={() => setIsEditingPersonalInfo(true)}
+                                onClick={savePersonalInfo}
                               >
-                                <Edit size={14} />
-                                Editar
+                                <Check size={14} />
+                                Guardar
                               </button>
-                            ) : (
-                              <div style={{ display: "flex", gap: "0.5rem" }}>
-                                <button
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    padding: "0.375rem 0.75rem",
-                                    backgroundColor: "#10b981",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    fontSize: "0.875rem",
-                                    cursor: "pointer",
-                                    fontWeight: "500",
-                                  }}
-                                  onClick={savePersonalInfo}
-                                >
-                                  <Check size={14} />
-                                  Guardar
-                                </button>
-                                <button
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    padding: "0.375rem 0.75rem",
-                                    backgroundColor: "#ef4444",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    fontSize: "0.875rem",
-                                    cursor: "pointer",
-                                    fontWeight: "500",
-                                  }}
-                                  onClick={cancelEdit}
-                                >
-                                  <X size={14} />
-                                  Cancelar
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                            {/* Row 1 */}
-                            <div style={{ display: "flex", gap: "1.5rem" }}>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                  }}
-                                >
-                                  Email
-                                  {!isEditingPersonalInfo && selectedLead.Correo && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            onClick={() => copyToClipboard(selectedLead.Correo!, "Email")}
-                                            style={{
-                                              background: "none",
-                                              border: "none",
-                                              cursor: "pointer",
-                                              padding: "0",
-                                              display: "flex",
-                                              alignItems: "center",
-                                              color: "#6b7280",
-                                            }}
-                                          >
-                                            {copiedField === "Email" ? (
-                                              <Check size={14} style={{ color: "#10b981" }} />
-                                            ) : (
-                                              <Copy size={14} />
-                                            )}
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>Copiar email</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Correo || ""}
-                                    onChange={(e) => setEditFormData({ ...editFormData, Correo: e.target.value })}
-                                    placeholder="email@ejemplo.com"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      fontSize: "0.875rem",
-                                      fontStyle: selectedLead.Correo ? "normal" : "italic",
-                                      color: selectedLead.Correo ? "inherit" : "#9ca3af",
-                                      wordBreak: "break-word",
-                                    }}
-                                  >
-                                    {selectedLead.Correo || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                  }}
-                                >
-                                  Teléfono
-                                  {!isEditingPersonalInfo && selectedLead.Telefono && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            onClick={() => copyToClipboard(selectedLead.Telefono!, "Teléfono")}
-                                            style={{
-                                              background: "none",
-                                              border: "none",
-                                              cursor: "pointer",
-                                              padding: "0",
-                                              display: "flex",
-                                              alignItems: "center",
-                                              color: "#6b7280",
-                                            }}
-                                          >
-                                            {copiedField === "Teléfono" ? (
-                                              <Check size={14} style={{ color: "#10b981" }} />
-                                            ) : (
-                                              <Copy size={14} />
-                                            )}
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>Copiar teléfono</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Telefono || ""}
-                                    onChange={(e) => setEditFormData({ ...editFormData, Telefono: e.target.value })}
-                                    placeholder="+34 600 000 000"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                    {selectedLead.Telefono || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  País
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Pais || ""}
-                                    onChange={(e) => setEditFormData({ ...editFormData, Pais: e.target.value })}
-                                    placeholder="España"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      fontSize: "0.875rem",
-                                      fontStyle: selectedLead.Pais ? "normal" : "italic",
-                                      color: selectedLead.Pais ? "inherit" : "#9ca3af",
-                                    }}
-                                  >
-                                    {selectedLead.Pais || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
+                              <button
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: "0.375rem 0.75rem",
+                                  backgroundColor: "#ef4444",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  fontSize: "0.875rem",
+                                  cursor: "pointer",
+                                  fontWeight: "500",
+                                }}
+                                onClick={cancelEdit}
+                              >
+                                <X size={14} />
+                                Cancelar
+                              </button>
                             </div>
-
-                            {/* Row 2 */}
-                            <div style={{ display: "flex", gap: "1.5rem" }}>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  Ingresos
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    type="number"
-                                    value={editFormData.Ingresos || ""}
-                                    onChange={(e) =>
-                                      setEditFormData({
-                                        ...editFormData,
-                                        Ingresos: Number.parseFloat(e.target.value) || 0,
-                                      })
-                                    }
-                                    placeholder="2000"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      fontSize: "0.875rem",
-                                      fontStyle: selectedLead.Ingresos ? "normal" : "italic",
-                                      color: selectedLead.Ingresos ? "inherit" : "#9ca3af",
-                                    }}
-                                  >
-                                    {selectedLead.Ingresos ? formatCurrency(selectedLead.Ingresos) : "No especificado"}
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  Código Postal
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Codigo_Postal || ""}
-                                    onChange={(e) =>
-                                      setEditFormData({ ...editFormData, Codigo_Postal: e.target.value })
-                                    }
-                                    placeholder="28001"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      fontSize: "0.875rem",
-                                      fontStyle: selectedLead.Codigo_Postal ? "normal" : "italic",
-                                      color: selectedLead.Codigo_Postal ? "inherit" : "#9ca3af",
-                                    }}
-                                  >
-                                    {selectedLead.Codigo_Postal || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  Tipo Documento
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Tipo_Documento || ""}
-                                    onChange={(e) =>
-                                      setEditFormData({ ...editFormData, Tipo_Documento: e.target.value })
-                                    }
-                                    placeholder="DNI, NIE, Pasaporte"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      fontSize: "0.875rem",
-                                      fontStyle: selectedLead.Tipo_Documento ? "normal" : "italic",
-                                      color: selectedLead.Tipo_Documento ? "inherit" : "#9ca3af",
-                                    }}
-                                  >
-                                    {selectedLead.Tipo_Documento || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Row 3 */}
-                            <div style={{ display: "flex", gap: "1.5rem" }}>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                  }}
-                                >
-                                  Documento de Identidad
-                                  {!isEditingPersonalInfo && selectedLead.Documento && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            onClick={() =>
-                                              copyToClipboard(selectedLead.Documento!, "Documento de Identidad")
-                                            }
-                                            style={{
-                                              background: "none",
-                                              border: "none",
-                                              cursor: "pointer",
-                                              padding: "0",
-                                              display: "flex",
-                                              alignItems: "center",
-                                              color: "#6b7280",
-                                            }}
-                                          >
-                                            {copiedField === "Documento de Identidad" ? (
-                                              <Check size={14} style={{ color: "#10b981" }} />
-                                            ) : (
-                                              <Copy size={14} />
-                                            )}
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>Copiar documento</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Documento || ""}
-                                    onChange={(e) => setEditFormData({ ...editFormData, Documento: e.target.value })}
-                                    placeholder="12345678A"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      fontSize: "0.875rem",
-                                      fontStyle: selectedLead.Documento ? "normal" : "italic",
-                                      color: selectedLead.Documento ? "inherit" : "#9ca3af",
-                                    }}
-                                  >
-                                    {selectedLead.Documento || "No proporcionado"}
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ flex: "2" }}></div>
-                            </div>
-                          </div>
+                          )}
                         </div>
-                      )}
 
-                      {/* Persona 2 Info */}
-                      {selectedPersona === 2 && selectedLead?.Persona_2 && (
-                        <div
-                          style={{
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "8px",
-                            padding: "1.25rem",
-                            background: "white",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: "1.25rem",
-                            }}
-                          >
-                            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                              <h2 style={{ fontSize: "1.125rem", fontWeight: "600", margin: 0 }}>
-                                Información Persona 2
-                              </h2>
-                            </div>
-                            {!isEditingPersonalInfo ? (
-                              <button
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          {/* Row 1 */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
                                 style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
                                   display: "flex",
                                   alignItems: "center",
                                   gap: "0.5rem",
-                                  background: "none",
-                                  border: "none",
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                  cursor: "pointer",
                                 }}
-                                onClick={() => setIsEditingPersonalInfo(true)}
                               >
-                                <Edit size={14} />
-                                Editar
-                              </button>
-                            ) : (
-                              <div style={{ display: "flex", gap: "0.5rem" }}>
-                                <button
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    padding: "0.375rem 0.75rem",
-                                    backgroundColor: "#10b981",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    fontSize: "0.875rem",
-                                    cursor: "pointer",
-                                    fontWeight: "500",
-                                  }}
-                                  onClick={savePersonalInfo}
-                                >
-                                  <Check size={14} />
-                                  Guardar
-                                </button>
-                                <button
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    padding: "0.375rem 0.75rem",
-                                    backgroundColor: "#ef4444",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    fontSize: "0.875rem",
-                                    cursor: "pointer",
-                                    fontWeight: "500",
-                                  }}
-                                  onClick={cancelEdit}
-                                >
-                                  <X size={14} />
-                                  Cancelar
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                            <div style={{ display: "flex", gap: "1.5rem" }}>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  Nombre Persona 2
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Persona_2 || ""}
-                                    onChange={(e) => setEditFormData({ ...editFormData, Persona_2: e.target.value })}
-                                    placeholder="Nombre del familiar/contacto"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                    {selectedLead.Persona_2 || "No especificado"}
-                                  </div>
+                                Email
+                                {!isEditingPersonalInfo && selectedLead.Correo && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          onClick={() => copyToClipboard(selectedLead.Correo!, "Email")}
+                                          style={{
+                                            background: "none",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            padding: "0",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            color: "#6b7280",
+                                          }}
+                                        >
+                                          {copiedField === "Email" ? (
+                                            <Check size={14} style={{ color: "#10b981" }} />
+                                          ) : (
+                                            <Copy size={14} />
+                                          )}
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Copiar email</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </div>
-                              <div style={{ flex: "1", minWidth: 0 }}>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Correo || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Correo: e.target.value })}
+                                  placeholder="email@ejemplo.com"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
                                 <div
                                   style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
+                                    fontSize: "0.875rem",
+                                    fontStyle: selectedLead.Correo ? "normal" : "italic",
+                                    color: selectedLead.Correo ? "inherit" : "#9ca3af",
+                                    wordBreak: "break-word",
                                   }}
                                 >
-                                  Tipo Documento Persona 2
+                                  {selectedLead.Correo || "No especificado"}
                                 </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Tipo_Documento_2 || ""}
-                                    onChange={(e) =>
-                                      setEditFormData({ ...editFormData, Tipo_Documento_2: e.target.value })
-                                    }
-                                    placeholder="DNI, NIE, Pasaporte"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                    {selectedLead.Tipo_Documento_2 || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
-                            <div style={{ display: "flex", gap: "1.5rem" }}>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  Documento Persona 2
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Documento_2 || ""}
-                                    onChange={(e) => setEditFormData({ ...editFormData, Documento_2: e.target.value })}
-                                    placeholder="12345678A"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                    {selectedLead.Documento_2 || "No especificado"}
-                                  </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                }}
+                              >
+                                Teléfono
+                                {!isEditingPersonalInfo && selectedLead.Telefono && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          onClick={() => copyToClipboard(selectedLead.Telefono!, "Teléfono")}
+                                          style={{
+                                            background: "none",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            padding: "0",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            color: "#6b7280",
+                                          }}
+                                        >
+                                          {copiedField === "Teléfono" ? (
+                                            <Check size={14} style={{ color: "#10b981" }} />
+                                          ) : (
+                                            <Copy size={14} />
+                                          )}
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Copiar teléfono</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </div>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  País Persona 2
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Telefono || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Telefono: e.target.value })}
+                                  placeholder="+34 600 000 000"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Telefono || "No especificado"}
                                 </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Pais_2 || ""}
-                                    onChange={(e) => setEditFormData({ ...editFormData, Pais_2: e.target.value })}
-                                    placeholder="España"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                    {selectedLead.Pais_2 || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
@@ -2087,469 +2124,209 @@ export default function LeadsPage() {
                                   marginBottom: "0.375rem",
                                 }}
                               >
-                                Ingresos Persona 2 (€)
+                                País
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Pais || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Pais: e.target.value })}
+                                  placeholder="España"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    fontSize: "0.875rem",
+                                    fontStyle: selectedLead.Pais ? "normal" : "italic",
+                                    color: selectedLead.Pais ? "inherit" : "#9ca3af",
+                                  }}
+                                >
+                                  {selectedLead.Pais || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Row 2 */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Ingresos
                               </div>
                               {isEditingPersonalInfo ? (
                                 <Input
                                   type="number"
-                                  value={editFormData.Ingresos_2 || ""}
+                                  value={editFormData.Ingresos || ""}
                                   onChange={(e) =>
                                     setEditFormData({
                                       ...editFormData,
-                                      Ingresos_2: Number.parseFloat(e.target.value) || 0,
+                                      Ingresos: Number.parseFloat(e.target.value) || 0,
                                     })
                                   }
                                   placeholder="2000"
                                   className="h-9 text-sm"
                                 />
                               ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Ingresos_2
-                                    ? formatCurrency(selectedLead.Ingresos_2)
-                                    : "No especificado"}
+                                <div
+                                  style={{
+                                    fontSize: "0.875rem",
+                                    fontStyle: selectedLead.Ingresos ? "normal" : "italic",
+                                    color: selectedLead.Ingresos ? "inherit" : "#9ca3af",
+                                  }}
+                                >
+                                  {selectedLead.Ingresos ? formatCurrency(selectedLead.Ingresos) : "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Código Postal
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Codigo_Postal || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Codigo_Postal: e.target.value })}
+                                  placeholder="28001"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    fontSize: "0.875rem",
+                                    fontStyle: selectedLead.Codigo_Postal ? "normal" : "italic",
+                                    color: selectedLead.Codigo_Postal ? "inherit" : "#9ca3af",
+                                  }}
+                                >
+                                  {selectedLead.Codigo_Postal || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Tipo Documento
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Tipo_Documento || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Tipo_Documento: e.target.value })}
+                                  placeholder="DNI, NIE, Pasaporte"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    fontSize: "0.875rem",
+                                    fontStyle: selectedLead.Tipo_Documento ? "normal" : "italic",
+                                    color: selectedLead.Tipo_Documento ? "inherit" : "#9ca3af",
+                                  }}
+                                >
+                                  {selectedLead.Tipo_Documento || "No especificado"}
                                 </div>
                               )}
                             </div>
                           </div>
-                        </div>
-                      )}
 
-                      {/* Persona 3 Info */}
-                      {selectedPersona === 3 && selectedLead?.Persona_3 && (
-                        <div
-                          style={{
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "8px",
-                            padding: "1.25rem",
-                            background: "white",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: "1.25rem",
-                            }}
-                          >
-                            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                              <h2 style={{ fontSize: "1.125rem", fontWeight: "600", margin: 0 }}>
-                                Información Persona 3
-                              </h2>
-                            </div>
-                            {!isEditingPersonalInfo ? (
-                              <button
+                          {/* Row 3 */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
                                 style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
                                   display: "flex",
                                   alignItems: "center",
                                   gap: "0.5rem",
-                                  background: "none",
-                                  border: "none",
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => setIsEditingPersonalInfo(true)}
-                              >
-                                <Edit size={14} />
-                                Editar
-                              </button>
-                            ) : (
-                              <div style={{ display: "flex", gap: "0.5rem" }}>
-                                <button
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    padding: "0.375rem 0.75rem",
-                                    backgroundColor: "#10b981",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    fontSize: "0.875rem",
-                                    cursor: "pointer",
-                                    fontWeight: "500",
-                                  }}
-                                  onClick={savePersonalInfo}
-                                >
-                                  <Check size={14} />
-                                  Guardar
-                                </button>
-                                <button
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    padding: "0.375rem 0.75rem",
-                                    backgroundColor: "#ef4444",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    fontSize: "0.875rem",
-                                    cursor: "pointer",
-                                    fontWeight: "500",
-                                  }}
-                                  onClick={cancelEdit}
-                                >
-                                  <X size={14} />
-                                  Cancelar
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                            <div style={{ display: "flex", gap: "1.5rem" }}>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  Nombre Persona 3
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Persona_3 || ""}
-                                    onChange={(e) => setEditFormData({ ...editFormData, Persona_3: e.target.value })}
-                                    placeholder="Nombre del familiar/contacto"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                    {selectedLead.Persona_3 || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  Tipo Documento Persona 3
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Tipo_Documento_3 || ""}
-                                    onChange={(e) =>
-                                      setEditFormData({ ...editFormData, Tipo_Documento_3: e.target.value })
-                                    }
-                                    placeholder="DNI, NIE, Pasaporte"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                    {selectedLead.Tipo_Documento_3 || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div style={{ display: "flex", gap: "1.5rem" }}>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  Documento Persona 3
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    value={editFormData.Documento_3 || ""}
-                                    onChange={(e) => setEditFormData({ ...editFormData, Documento_3: e.target.value })}
-                                    placeholder="12345678A"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                    {selectedLead.Documento_3 || "No especificado"}
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ flex: "1", minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    fontWeight: "500",
-                                    marginBottom: "0.375rem",
-                                  }}
-                                >
-                                  Ingresos Persona 3 (€)
-                                </div>
-                                {isEditingPersonalInfo ? (
-                                  <Input
-                                    type="number"
-                                    value={editFormData.Ingresos_3 || ""}
-                                    onChange={(e) =>
-                                      setEditFormData({
-                                        ...editFormData,
-                                        Ingresos_3: Number.parseFloat(e.target.value) || 0,
-                                      })
-                                    }
-                                    placeholder="2000"
-                                    className="h-9 text-sm"
-                                  />
-                                ) : (
-                                  <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                    {selectedLead.Ingresos_3
-                                      ? formatCurrency(selectedLead.Ingresos_3)
-                                      : "No especificado"}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Evaluación */}
-                      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.25rem" }}>
-                        <h2 style={{ fontSize: "1.125rem", fontWeight: "600", marginBottom: "1.25rem" }}>Evaluación</h2>
-
-                        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                          <div
-                            style={{
-                              flex: "1",
-                              minWidth: "120px",
-                              textAlign: "center",
-                              padding: "1rem",
-                              backgroundColor: getStatusColors(selectedLead.Estado).bg,
-                              borderRadius: "8px",
-                              border: `2px solid ${getStatusColors(selectedLead.Estado).border}`,
-                              position: "relative",
-                            }}
-                          >
-                            {selectedLead.Estado === "Completado" && (
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: "0.5rem",
-                                  right: "0.5rem",
-                                  backgroundColor: "#22c55e",
-                                  borderRadius: "50%",
-                                  width: "20px",
-                                  height: "20px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: "white",
-                                  fontSize: "0.75rem",
                                 }}
                               >
-                                ✓
+                                Documento de Identidad
+                                {!isEditingPersonalInfo && selectedLead.Documento && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          onClick={() =>
+                                            copyToClipboard(selectedLead.Documento!, "Documento de Identidad")
+                                          }
+                                          style={{
+                                            background: "none",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            padding: "0",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            color: "#6b7280",
+                                          }}
+                                        >
+                                          {copiedField === "Documento de Identidad" ? (
+                                            <Check size={14} style={{ color: "#10b981" }} />
+                                          ) : (
+                                            <Copy size={14} />
+                                          )}
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Copiar documento</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                               </div>
-                            )}
-                            <div
-                              style={{
-                                fontSize: "1.25rem",
-                                fontWeight: "bold",
-                                color: getStatusColors(selectedLead.Estado).text,
-                              }}
-                            >
-                              {getStatusColors(selectedLead.Estado).label}
-                            </div>
-                            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.5rem" }}>ESTADO</div>
-                          </div>
-
-                          <div
-                            style={{
-                              flex: "1",
-                              minWidth: "120px",
-                              textAlign: "center",
-                              padding: "1rem",
-                              backgroundColor: "#f9fafb",
-                              borderRadius: "8px",
-                            }}
-                          >
-                            <div style={{ fontSize: "1.25rem", fontWeight: "bold" }}>
-                              {calculateIAScore(selectedLead)}%
-                            </div>
-                            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.5rem" }}>SCORE IA</div>
-                          </div>
-
-                          {/* Pedir Aval Card */}
-                          <div
-                            style={{
-                              flex: "1",
-                              minWidth: "120px",
-                              textAlign: "center",
-                              padding: "1rem",
-                              backgroundColor: "#f9fafb",
-                              borderRadius: "8px",
-                              cursor: "pointer",
-                              transition: "all 0.2s",
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              e.preventDefault()
-                              openAvalDialog()
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "#e5e7eb"
-                              e.currentTarget.style.transform = "scale(1.02)"
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "#f9fafb"
-                              e.currentTarget.style.transform = "scale(1)"
-                            }}
-                          >
-                            <div style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#3b82f6" }}>
-                              {selectedLead.Pedir_Aval ? "Sí" : "No"}
-                            </div>
-                            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.5rem" }}>PEDIR AVAL</div>
-                            <div style={{ fontSize: "0.65rem", color: "#3b82f6", marginTop: "0.25rem" }}>
-                              Click para revisar
-                            </div>
-                          </div>
-
-                          <div
-                            style={{
-                              flex: "1",
-                              minWidth: "120px",
-                              textAlign: "center",
-                              padding: "1rem",
-                              backgroundColor: "#f9fafb",
-                              borderRadius: "8px",
-                            }}
-                          >
-                            <div style={{ fontSize: "1rem", fontWeight: "bold" }}>
-                              {getDaysAgo(selectedLead.created_at)}
-                            </div>
-                            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.5rem" }}>
-                              FECHA ENTRADA
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.65rem",
-                                color: "#6b7280",
-                                marginTop: "0.5rem",
-                                fontStyle: "italic",
-                              }}
-                            >
-                              {new Date(selectedLead.created_at).toLocaleDateString("es-ES", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              })}{" "}
-                              a las{" "}
-                              {new Date(selectedLead.created_at).toLocaleTimeString("es-ES", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}{" "}
-                            </div>
-                            {(() => {
-                              const lastComm = getLastCommunication()
-                              if (lastComm) {
-                                return (
-                                  <div
-                                    style={{
-                                      fontSize: "0.65rem",
-                                      color: lastComm.isSent ? "#3b82f6" : "#22c55e",
-                                      marginTop: "0.5rem",
-                                      fontWeight: "500",
-                                    }}
-                                  >
-                                    {lastComm.daysAgo} - {lastComm.isSent ? "📤" : "📥"} {lastComm.type}
-                                  </div>
-                                )
-                              }
-                              return (
-                                <div style={{ fontSize: "0.65rem", color: "#9ca3af", marginTop: "0.5rem" }}>
-                                  Sin comunicaciones
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Documento || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Documento: e.target.value })}
+                                  placeholder="12345678A"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    fontSize: "0.875rem",
+                                    fontStyle: selectedLead.Documento ? "normal" : "italic",
+                                    color: selectedLead.Documento ? "inherit" : "#9ca3af",
+                                  }}
+                                >
+                                  {selectedLead.Documento || "No proporcionado"}
                                 </div>
-                              )
-                            })()}
+                              )}
+                            </div>
+                            <div style={{ flex: "2" }}></div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Right Column */}
-                    <div
-                      style={{
-                        width: "280px",
-                        flexShrink: 0,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "1.25rem",
-                      }}
-                    >
-                      {/* Documentos */}
-                      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.25rem" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: "1rem",
-                          }}
-                        >
-                          <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Documentos</h2>
-                          <button
-                            style={{
-                              padding: "0.25rem 0.75rem",
-                              fontSize: "0.75rem",
-                              backgroundColor: "#f3f4f6",
-                              border: "none",
-                              borderRadius: "4px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Gestionar
-                          </button>
-                        </div>
-
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.875rem" }}>DNI/NIE</span>
-                            <span
-                              style={{
-                                padding: "0.25rem 0.5rem",
-                                fontSize: "0.75rem",
-                                backgroundColor: "#fef3c7",
-                                color: "#92400e",
-                                borderRadius: "4px",
-                              }}
-                            >
-                              Pendiente
-                            </span>
-                          </div>
-
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.875rem" }}>Just. Ingresos</span>
-                            <span
-                              style={{
-                                padding: "0.25rem 0.5rem",
-                                fontSize: "0.75rem",
-                                backgroundColor: "#fef3c7",
-                                color: "#92400e",
-                                borderRadius: "4px",
-                              }}
-                            >
-                              Pendiente
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Comunicaciones */}
+                    {/* Persona 2 Info */}
+                    {selectedPersona === 2 && selectedLead?.Persona_2 && (
                       <div
                         style={{
                           border: "1px solid #e5e7eb",
                           borderRadius: "8px",
                           padding: "1.25rem",
-                          flex: 1,
-                          minHeight: "300px",
+                          background: "white",
                         }}
                       >
                         <div
@@ -2557,388 +2334,1033 @@ export default function LeadsPage() {
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
-                            marginBottom: "1rem",
+                            marginBottom: "1.25rem",
                           }}
                         >
-                          <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Comunicaciones</h2>
-                          <button
-                            style={{
-                              padding: "0.25rem 0.75rem",
-                              fontSize: "0.75rem",
-                              backgroundColor: "#000",
-                              color: "#fff",
-                              border: "none",
-                              borderRadius: "4px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Agregar
-                          </button>
-                        </div>
-
-                        {communications.length > 0 ? (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "0.75rem",
-                              maxHeight: "400px",
-                              overflowY: "auto",
-                            }}
-                          >
-                            {communications.map((comm) => (
-                              <div
-                                key={comm.id}
-                                onClick={() => openCommunicationDetail(comm)}
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                            <h2 style={{ fontSize: "1.125rem", fontWeight: "600", margin: 0 }}>
+                              Información Persona 2
+                            </h2>
+                          </div>
+                          {!isEditingPersonalInfo ? (
+                            <button
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                background: "none",
+                                border: "none",
+                                fontSize: "0.875rem",
+                                color: "#6b7280",
+                                cursor: "pointer",
+                              }}
+                              onClick={() => setIsEditingPersonalInfo(true)}
+                            >
+                              <Edit size={14} />
+                              Editar
+                            </button>
+                          ) : (
+                            <div style={{ display: "flex", gap: "0.5rem" }}>
+                              <button
                                 style={{
-                                  padding: "0.75rem",
-                                  backgroundColor: "#f9fafb",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: "0.375rem 0.75rem",
+                                  backgroundColor: "#10b981",
+                                  color: "white",
+                                  border: "none",
                                   borderRadius: "6px",
-                                  border: "1px solid #e5e7eb",
+                                  fontSize: "0.875rem",
                                   cursor: "pointer",
-                                  transition: "all 0.2s",
+                                  fontWeight: "500",
                                 }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = "#f3f4f6"
-                                  e.currentTarget.style.borderColor = "#d1d5db"
+                                onClick={savePersonalInfo}
+                              >
+                                <Check size={14} />
+                                Guardar
+                              </button>
+                              <button
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: "0.375rem 0.75rem",
+                                  backgroundColor: "#ef4444",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  fontSize: "0.875rem",
+                                  cursor: "pointer",
+                                  fontWeight: "500",
                                 }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = "#f9fafb"
-                                  e.currentTarget.style.borderColor = "#e5e7eb"
+                                onClick={cancelEdit}
+                              >
+                                <X size={14} />
+                                Cancelar
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
                                 }}
                               >
-                                <div style={{ fontSize: "0.75rem", fontWeight: "600", marginBottom: "0.25rem" }}>
-                                  {comm.From || "Sin remitente"}
-                                </div>
-                                <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.5rem" }}>
-                                  {comm.Subject || "Sin asunto"}
-                                </div>
-                                <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
-                                  {new Date(comm.created_at).toLocaleDateString("es-ES")}
-                                </div>
+                                Nombre Persona 2
                               </div>
-                            ))}
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Persona_2 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Persona_2: e.target.value })}
+                                  placeholder="Nombre del familiar/contacto"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Persona_2 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Tipo Documento Persona 2
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Tipo_Documento_2 || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, Tipo_Documento_2: e.target.value })
+                                  }
+                                  placeholder="DNI, NIE, Pasaporte"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Tipo_Documento_2 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        ) : (
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Documento Persona 2
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Documento_2 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_2: e.target.value })}
+                                  placeholder="12345678A"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Documento_2 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                País Persona 2
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Pais_2 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Pais_2: e.target.value })}
+                                  placeholder="España"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Pais_2 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ flex: "1", minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "#6b7280",
+                                fontWeight: "500",
+                                marginBottom: "0.375rem",
+                              }}
+                            >
+                              Ingresos Persona 2 (€)
+                            </div>
+                            {isEditingPersonalInfo ? (
+                              <Input
+                                type="number"
+                                value={editFormData.Ingresos_2 || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    Ingresos_2: Number.parseFloat(e.target.value) || 0,
+                                  })
+                                }
+                                placeholder="2000"
+                                className="h-9 text-sm"
+                              />
+                            ) : (
+                              <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                {selectedLead.Ingresos_2 ? formatCurrency(selectedLead.Ingresos_2) : "No especificado"}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Persona 3 Info */}
+                    {selectedPersona === 3 && selectedLead?.Persona_3 && (
+                      <div
+                        style={{
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                          padding: "1.25rem",
+                          background: "white",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "1.25rem",
+                          }}
+                        >
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                            <h2 style={{ fontSize: "1.125rem", fontWeight: "600", margin: 0 }}>
+                              Información Persona 3
+                            </h2>
+                          </div>
+                          {!isEditingPersonalInfo ? (
+                            <button
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                background: "none",
+                                border: "none",
+                                fontSize: "0.875rem",
+                                color: "#6b7280",
+                                cursor: "pointer",
+                              }}
+                              onClick={() => setIsEditingPersonalInfo(true)}
+                            >
+                              <Edit size={14} />
+                              Editar
+                            </button>
+                          ) : (
+                            <div style={{ display: "flex", gap: "0.5rem" }}>
+                              <button
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: "0.375rem 0.75rem",
+                                  backgroundColor: "#10b981",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  fontSize: "0.875rem",
+                                  cursor: "pointer",
+                                  fontWeight: "500",
+                                }}
+                                onClick={savePersonalInfo}
+                              >
+                                <Check size={14} />
+                                Guardar
+                              </button>
+                              <button
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: "0.375rem 0.75rem",
+                                  backgroundColor: "#ef4444",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  fontSize: "0.875rem",
+                                  cursor: "pointer",
+                                  fontWeight: "500",
+                                }}
+                                onClick={cancelEdit}
+                              >
+                                <X size={14} />
+                                Cancelar
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Nombre Persona 3
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Persona_3 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Persona_3: e.target.value })}
+                                  placeholder="Nombre del familiar/contacto"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Persona_3 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Tipo Documento Persona 3
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Tipo_Documento_3 || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, Tipo_Documento_3: e.target.value })
+                                  }
+                                  placeholder="DNI, NIE, Pasaporte"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Tipo_Documento_3 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Documento Persona 3
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Documento_3 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_3: e.target.value })}
+                                  placeholder="12345678A"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Documento_3 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Ingresos Persona 3 (€)
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  type="number"
+                                  value={editFormData.Ingresos_3 || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({
+                                      ...editFormData,
+                                      Ingresos_3: Number.parseFloat(e.target.value) || 0,
+                                    })
+                                  }
+                                  placeholder="2000"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Ingresos_3
+                                    ? formatCurrency(selectedLead.Ingresos_3)
+                                    : "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Evaluación */}
+                    <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.25rem" }}>
+                      <h2 style={{ fontSize: "1.125rem", fontWeight: "600", marginBottom: "1.25rem" }}>Evaluación</h2>
+
+                      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                        <div
+                          style={{
+                            flex: "1",
+                            minWidth: "120px",
+                            textAlign: "center",
+                            padding: "1rem",
+                            backgroundColor: getStatusColors(selectedLead.Estado).bg,
+                            borderRadius: "8px",
+                            border: `2px solid ${getStatusColors(selectedLead.Estado).border}`,
+                            position: "relative",
+                          }}
+                        >
+                          {selectedLead.Estado === "Completado" && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "0.5rem",
+                                right: "0.5rem",
+                                backgroundColor: "#22c55e",
+                                borderRadius: "50%",
+                                width: "20px",
+                                height: "20px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "white",
+                                fontSize: "0.75rem",
+                              }}
+                            >
+                              ✓
+                            </div>
+                          )}
                           <div
                             style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              height: "calc(100% - 3rem)",
-                              textAlign: "center",
+                              fontSize: "1.25rem",
+                              fontWeight: "bold",
+                              color: getStatusColors(selectedLead.Estado).text,
                             }}
                           >
-                            <div style={{ fontSize: "3rem" }}>💬</div>
-                            <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>Sin comunicaciones</p>
+                            {getStatusColors(selectedLead.Estado).label}
                           </div>
-                        )}
+                          <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.5rem" }}>ESTADO</div>
+                        </div>
+
+                        <div
+                          style={{
+                            flex: "1",
+                            minWidth: "120px",
+                            textAlign: "center",
+                            padding: "1rem",
+                            backgroundColor: "#f9fafb",
+                            borderRadius: "8px",
+                          }}
+                        >
+                          <div style={{ fontSize: "1.25rem", fontWeight: "bold" }}>
+                            {calculateIAScore(selectedLead)}%
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.5rem" }}>SCORE IA</div>
+                        </div>
+
+                        {/* Pedir Aval Card */}
+                        <div
+                          style={{
+                            flex: "1",
+                            minWidth: "120px",
+                            textAlign: "center",
+                            padding: "1rem",
+                            backgroundColor: "#f9fafb",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            e.preventDefault()
+                            openAvalDialog()
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#e5e7eb"
+                            e.currentTarget.style.transform = "scale(1.02)"
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "#f9fafb"
+                            e.currentTarget.style.transform = "scale(1)"
+                          }}
+                        >
+                          <div style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#3b82f6" }}>
+                            {selectedLead.Pedir_Aval ? "Sí" : "No"}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.5rem" }}>PEDIR AVAL</div>
+                          <div style={{ fontSize: "0.65rem", color: "#3b82f6", marginTop: "0.25rem" }}>
+                            Click para revisar
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            flex: "1",
+                            minWidth: "120px",
+                            textAlign: "center",
+                            padding: "1rem",
+                            backgroundColor: "#f9fafb",
+                            borderRadius: "8px",
+                          }}
+                        >
+                          <div style={{ fontSize: "1rem", fontWeight: "bold" }}>
+                            {getDaysAgo(selectedLead.created_at)}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.5rem" }}>
+                            FECHA ENTRADA
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.65rem",
+                              color: "#6b7280",
+                              marginTop: "0.5rem",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            {new Date(selectedLead.created_at).toLocaleDateString("es-ES", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}{" "}
+                            a las{" "}
+                            {new Date(selectedLead.created_at).toLocaleTimeString("es-ES", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                          </div>
+                          {(() => {
+                            const lastComm = getLastCommunication()
+                            if (lastComm) {
+                              return (
+                                <div
+                                  style={{
+                                    fontSize: "0.65rem",
+                                    color: lastComm.isSent ? "#3b82f6" : "#22c55e",
+                                    marginTop: "0.5rem",
+                                    fontWeight: "500",
+                                  }}
+                                >
+                                  {lastComm.daysAgo} - {lastComm.isSent ? "📤" : "📥"} {lastComm.type}
+                                </div>
+                              )
+                            }
+                            return (
+                              <div style={{ fontSize: "0.65rem", color: "#9ca3af", marginTop: "0.5rem" }}>
+                                Sin comunicaciones
+                              </div>
+                            )
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
 
-        <Dialog open={isNewLeadDialogOpen} onOpenChange={setIsNewLeadDialogOpen}>
-          <DialogContent className="w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[70vw] max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b">
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                <div>
-                  <DialogTitle className="text-lg font-semibold">Crear Nuevo Lead</DialogTitle>
-                  <p className="text-muted-foreground text-xs mt-0.5">
-                    Completa la información del nuevo cliente potencial
-                  </p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setIsNewLeadDialogOpen(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
-              {/* Información Personal */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                    <User className="h-4 w-4" />
-                    Información Personal
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        Nombre Completo <span className="text-red-500">*</span>
-                      </label>
-                      <Input
-                        value={newLeadFormData.Nombre || ""}
-                        onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Nombre: e.target.value })}
-                        placeholder="Juan Pérez García"
-                        className="h-9 text-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        Email <span className="text-red-500">*</span>
-                      </label>
-                      <Input
-                        type="email"
-                        value={newLeadFormData.Correo || ""}
-                        onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Correo: e.target.value })}
-                        placeholder="juan@ejemplo.com"
-                        className="h-9 text-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Teléfono</label>
-                      <Input
-                        value={newLeadFormData.Telefono || ""}
-                        onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Telefono: e.target.value })}
-                        placeholder="+34 600 000 000"
-                        className="h-9 text-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">País</label>
-                      <Input
-                        value={newLeadFormData.Pais || ""}
-                        onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Pais: e.target.value })}
-                        placeholder="España"
-                        className="h-9 text-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Código Postal</label>
-                      <Input
-                        value={newLeadFormData.Codigo_Postal || ""}
-                        onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Codigo_Postal: e.target.value })}
-                        placeholder="28001"
-                        className="h-9 text-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Ingresos Mensuales (€)</label>
-                      <Input
-                        type="number"
-                        value={newLeadFormData.Ingresos || ""}
-                        onChange={(e) =>
-                          setNewLeadFormData({ ...newLeadFormData, Ingresos: Number.parseFloat(e.target.value) || 0 })
-                        }
-                        placeholder="2000"
-                        className="h-9 text-sm"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Documentación */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                    <FileText className="h-4 w-4" />
-                    Documentación
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Tipo de Documento</label>
-                      <Select
-                        value={newLeadFormData.Tipo_Documento || ""}
-                        onValueChange={(value) => setNewLeadFormData({ ...newLeadFormData, Tipo_Documento: value })}
+                  {/* Right Column */}
+                  <div
+                    style={{
+                      width: "280px",
+                      flexShrink: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1.25rem",
+                    }}
+                  >
+                    {/* Documentos */}
+                    <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.25rem" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "1rem",
+                        }}
                       >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Seleccionar tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="DNI">DNI</SelectItem>
-                          <SelectItem value="NIE">NIE</SelectItem>
-                          <SelectItem value="Pasaporte">Pasaporte</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Documentos</h2>
+                        <button
+                          style={{
+                            padding: "0.25rem 0.75rem",
+                            fontSize: "0.75rem",
+                            backgroundColor: "#f3f4f6",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Gestionar
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.875rem" }}>DNI/NIE</span>
+                          <span
+                            style={{
+                              padding: "0.25rem 0.5rem",
+                              fontSize: "0.75rem",
+                              backgroundColor: "#fef3c7",
+                              color: "#92400e",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            Pendiente
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.875rem" }}>Just. Ingresos</span>
+                          <span
+                            style={{
+                              padding: "0.25rem 0.5rem",
+                              fontSize: "0.75rem",
+                              backgroundColor: "#fef3c7",
+                              color: "#92400e",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            Pendiente
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Número de Documento</label>
-                      <Input
-                        value={newLeadFormData.Documento || ""}
-                        onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Documento: e.target.value })}
-                        placeholder="12345678A"
-                        className="h-9 text-sm"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Información del Inmueble */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                    <Building className="h-4 w-4" />
-                    Información del Inmueble
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Referencia del Inmueble</label>
-                      <Select
-                        value={newLeadFormData.Inmueble || ""}
-                        onValueChange={(value) => setNewLeadFormData({ ...newLeadFormData, Inmueble: value })}
+                    {/* Comunicaciones */}
+                    <div
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        padding: "1.25rem",
+                        flex: 1,
+                        minHeight: "300px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "1rem",
+                        }}
                       >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Seleccionar inmueble" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {advertisements.map((ad) => (
-                            <SelectItem key={ad.ida} value={ad.Referencia || ""}>
-                              {ad.Referencia} - {ad.Direccion}
-                            </SelectItem>
+                        <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Comunicaciones</h2>
+                        <button
+                          style={{
+                            padding: "0.25rem 0.75rem",
+                            fontSize: "0.75rem",
+                            backgroundColor: "#000",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Agregar
+                        </button>
+                      </div>
+
+                      {communications.length > 0 ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "0.75rem",
+                            maxHeight: "400px",
+                            overflowY: "auto",
+                          }}
+                        >
+                          {communications.map((comm) => (
+                            <div
+                              key={comm.id}
+                              onClick={() => openCommunicationDetail(comm)}
+                              style={{
+                                padding: "0.75rem",
+                                backgroundColor: "#f9fafb",
+                                borderRadius: "6px",
+                                border: "1px solid #e5e7eb",
+                                cursor: "pointer",
+                                transition: "all 0.2s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "#f3f4f6"
+                                e.currentTarget.style.borderColor = "#d1d5db"
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "#f9fafb"
+                                e.currentTarget.style.borderColor = "#e5e7eb"
+                              }}
+                            >
+                              <div style={{ fontSize: "0.75rem", fontWeight: "600", marginBottom: "0.25rem" }}>
+                                {comm.From || "Sin remitente"}
+                              </div>
+                              <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.5rem" }}>
+                                {comm.Subject || "Sin asunto"}
+                              </div>
+                              <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
+                                {new Date(comm.created_at).toLocaleDateString("es-ES")}
+                              </div>
+                            </div>
                           ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Fecha de Entrada Deseada</label>
-                      <Input
-                        type="date"
-                        value={newLeadFormData.Fecha_Entrada || ""}
-                        onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Fecha_Entrada: e.target.value })}
-                        className="h-9 text-sm"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Estado y Opciones */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                    <Star className="h-4 w-4" />
-                    Estado y Opciones
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Estado</label>
-                      <Select
-                        value={newLeadFormData.Estado || "Pendiente"}
-                        onValueChange={(value) => setNewLeadFormData({ ...newLeadFormData, Estado: value })}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Seleccionar estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Pendiente">Pendiente</SelectItem>
-                          <SelectItem value="Validado">Validado</SelectItem>
-                          <SelectItem value="Completado">Completado</SelectItem>
-                          <SelectItem value="Rechazado">Rechazado</SelectItem>
-                          <SelectItem value="Aceptado">Aceptado</SelectItem>
-                          <SelectItem value="Descartado">Descartado</SelectItem>
-                          {/* Added 'Datos Completos' and 'Datos Incompletos' to the select options */}
-                          <SelectItem value="Datos Completos">Datos Completos</SelectItem>
-                          <SelectItem value="Datos Incompletos">Datos Incompletos</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">¿Pedir Aval?</label>
-                      <Select
-                        value={newLeadFormData.Pedir_Aval ? "true" : "false"}
-                        onValueChange={(value) =>
-                          setNewLeadFormData({ ...newLeadFormData, Pedir_Aval: value === "true" })
-                        }
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="false">No</SelectItem>
-                          <SelectItem value="true">Sí</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            height: "calc(100% - 3rem)",
+                            textAlign: "center",
+                          }}
+                        >
+                          <div style={{ fontSize: "3rem" }}>💬</div>
+                          <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>Sin comunicaciones</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Observaciones */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                    <MessageSquare className="h-4 w-4" />
-                    Notas Adicionales
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Observaciones</label>
-                      <Input
-                        value={newLeadFormData.Observaciones || ""}
-                        onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Observaciones: e.target.value })}
-                        placeholder="Notas sobre el candidato..."
-                        className="h-9 text-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Recordatorio</label>
-                      <Input
-                        value={newLeadFormData.Recordatorio || ""}
-                        onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Recordatorio: e.target.value })}
-                        placeholder="Recordatorio para seguimiento..."
-                        className="h-9 text-sm"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
-
-            <div className="flex gap-3 pt-4 border-t">
-              <Button
-                variant="outline"
-                className="flex-1 bg-transparent"
-                onClick={() => setIsNewLeadDialogOpen(false)}
-                disabled={isSubmittingNewLead}
-              >
-                Cancelar
-              </Button>
-              <Button className="flex-1" onClick={createNewLead} disabled={isSubmittingNewLead}>
-                {isSubmittingNewLead ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creando...
-                  </>
-                ) : (
-                  <>
-                    <Users className="h-4 w-4 mr-2" />
-                    Crear Lead
-                  </>
-                )}
-              </Button>
+          </div>
+        </>
+      )}
+      <Dialog open={isNewLeadDialogOpen} onOpenChange={setIsNewLeadDialogOpen}>
+        <DialogContent className="w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[70vw] max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <DialogTitle className="text-lg font-semibold">Crear Nuevo Lead</DialogTitle>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  Completa la información del nuevo cliente potencial
+                </p>
+              </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <Button variant="ghost" size="sm" onClick={() => setIsNewLeadDialogOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
 
+          <div className="space-y-4 py-4">
+            {/* Información Personal */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <User className="h-4 w-4" />
+                  Información Personal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Nombre Completo <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={newLeadFormData.Nombre || ""}
+                      onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Nombre: e.target.value })}
+                      placeholder="Juan Pérez García"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="email"
+                      value={newLeadFormData.Correo || ""}
+                      onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Correo: e.target.value })}
+                      placeholder="juan@ejemplo.com"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Teléfono</label>
+                    <Input
+                      value={newLeadFormData.Telefono || ""}
+                      onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Telefono: e.target.value })}
+                      placeholder="+34 600 000 000"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">País</label>
+                    <Input
+                      value={newLeadFormData.Pais || ""}
+                      onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Pais: e.target.value })}
+                      placeholder="España"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Código Postal</label>
+                    <Input
+                      value={newLeadFormData.Codigo_Postal || ""}
+                      onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Codigo_Postal: e.target.value })}
+                      placeholder="28001"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Ingresos Mensuales (€)</label>
+                    <Input
+                      type="number"
+                      value={newLeadFormData.Ingresos || ""}
+                      onChange={(e) =>
+                        setNewLeadFormData({ ...newLeadFormData, Ingresos: Number.parseFloat(e.target.value) || 0 })
+                      }
+                      placeholder="2000"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Documentación */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <FileText className="h-4 w-4" />
+                  Documentación
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Tipo de Documento</label>
+                    <Select
+                      value={newLeadFormData.Tipo_Documento || ""}
+                      onValueChange={(value) => setNewLeadFormData({ ...newLeadFormData, Tipo_Documento: value })}
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Seleccionar tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DNI">DNI</SelectItem>
+                        <SelectItem value="NIE">NIE</SelectItem>
+                        <SelectItem value="Pasaporte">Pasaporte</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Número de Documento</label>
+                    <Input
+                      value={newLeadFormData.Documento || ""}
+                      onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Documento: e.target.value })}
+                      placeholder="12345678A"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Información del Inmueble */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Building className="h-4 w-4" />
+                  Información del Inmueble
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Referencia del Inmueble</label>
+                    <Select
+                      value={newLeadFormData.Inmueble || ""}
+                      onValueChange={(value) => setNewLeadFormData({ ...newLeadFormData, Inmueble: value })}
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Seleccionar inmueble" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {advertisements.map((ad) => (
+                          <SelectItem key={ad.ida} value={ad.Referencia || ""}>
+                            {ad.Referencia} - {ad.Direccion}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Fecha de Entrada Deseada</label>
+                    <Input
+                      type="date"
+                      value={newLeadFormData.Fecha_Entrada || ""}
+                      onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Fecha_Entrada: e.target.value })}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Estado y Opciones */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Star className="h-4 w-4" />
+                  Estado y Opciones
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Estado</label>
+                    <Select
+                      value={newLeadFormData.Estado || "Pendiente"}
+                      onValueChange={(value) => setNewLeadFormData({ ...newLeadFormData, Estado: value })}
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Pendiente">Pendiente</SelectItem>
+                        <SelectItem value="Validado">Validado</SelectItem>
+                        <SelectItem value="Completado">Completado</SelectItem>
+                        <SelectItem value="Rechazado">Rechazado</SelectItem>
+                        <SelectItem value="Aceptado">Aceptado</SelectItem>
+                        <SelectItem value="Descartado">Descartado</SelectItem>
+                        {/* Added 'Datos Completos' and 'Datos Incompletos' to the select options */}
+                        <SelectItem value="Datos Completos">Datos Completos</SelectItem>
+                        <SelectItem value="Datos Incompletos">Datos Incompletos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">¿Pedir Aval?</label>
+                    <Select
+                      value={newLeadFormData.Pedir_Aval ? "true" : "false"}
+                      onValueChange={(value) =>
+                        setNewLeadFormData({ ...newLeadFormData, Pedir_Aval: value === "true" })
+                      }
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="false">No</SelectItem>
+                        <SelectItem value="true">Sí</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Observaciones */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <MessageSquare className="h-4 w-4" />
+                  Notas Adicionales
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Observaciones</label>
+                    <Input
+                      value={newLeadFormData.Observaciones || ""}
+                      onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Observaciones: e.target.value })}
+                      placeholder="Notas sobre el candidato..."
+                      className="h-9 text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Recordatorio</label>
+                    <Input
+                      value={newLeadFormData.Recordatorio || ""}
+                      onChange={(e) => setNewLeadFormData({ ...newLeadFormData, Recordatorio: e.target.value })}
+                      placeholder="Recordatorio para seguimiento..."
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              className="flex-1 bg-transparent"
+              onClick={() => setIsNewLeadDialogOpen(false)}
+              disabled={isSubmittingNewLead}
+            >
+              Cancelar
+            </Button>
+            <Button className="flex-1" onClick={createNewLead} disabled={isSubmittingNewLead}>
+              {isSubmittingNewLead ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creando...
+                </>
+              ) : (
+                <>
+                  <Users className="h-4 w-4 mr-2" />
+                  Crear Lead
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={isReactivateDialogOpen} onOpenChange={setIsReactivateDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -2979,7 +3401,6 @@ export default function LeadsPage() {
           </div>
         </DialogContent>
       </Dialog>
-
       {/* Aval Dialog */}
       <Dialog open={isAvalDialogOpen} onOpenChange={setIsAvalDialogOpen}>
         <DialogContent className="sm:max-w-lg z-[200]">
@@ -3164,7 +3585,6 @@ export default function LeadsPage() {
           )}
         </DialogContent>
       </Dialog>
-
       {/* Communication Detail Dialog */}
       <Dialog open={isCommDialogOpen} onOpenChange={setIsCommDialogOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto z-[300]">
@@ -3238,7 +3658,84 @@ export default function LeadsPage() {
           )}
         </DialogContent>
       </Dialog>
+      {/* Communication Detail Dialog */}
+      <Dialog open={bulkConfirmationOpen} onOpenChange={setBulkConfirmationOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <XCircle className="h-5 w-5" />
+              Confirmar Cambio de Estado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm font-medium text-amber-800">
+                ⚠️ Esta acción es irreversible. Por favor, revise la selección antes de continuar.
+              </p>
+            </div>
 
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                Se cambiará el estado de {selectedLeadIds.length} lead(s) a:{" "}
+                <span className="font-bold text-blue-600">{pendingBulkStatus}</span>
+              </p>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto border rounded-lg">
+              <div className="divide-y">
+                {selectedLeadIds.map((leadId) => {
+                  const lead = leads.find((l) => l.id === leadId)
+                  if (!lead) return null
+
+                  return (
+                    <div key={leadId} className="p-3 hover:bg-gray-50 flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Checkbox checked={true} onCheckedChange={() => toggleLeadInConfirmation(leadId)} />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{lead.Nombre || "Sin nombre"}</p>
+                          <p className="text-xs text-gray-500">{lead.Correo}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {lead.Estado || "Sin estado"}
+                          </Badge>
+                          <span className="text-gray-400">→</span>
+                          <Badge className="text-xs bg-blue-100 text-blue-700">{pendingBulkStatus}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {selectedLeadIds.length === 0 && (
+              <p className="text-sm text-amber-600 text-center py-4">
+                No hay leads seleccionados. Por favor, seleccione al menos un lead.
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setBulkConfirmationOpen(false)
+                  setPendingBulkStatus(null)
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={executeBulkStatusChange}
+                disabled={selectedLeadIds.length === 0}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Confirmar Cambio
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Dialog open={isApprovalDialogOpen} ... has been moved to LeadApproveWrapper */}
     </div>
   )
