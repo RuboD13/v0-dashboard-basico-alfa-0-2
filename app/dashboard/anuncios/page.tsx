@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useInmobiliaria } from "@/lib/contexts/inmobiliaria-context"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,20 +15,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/hooks/use-toast"
@@ -40,6 +33,7 @@ import {
   MoreVertical,
   Calendar,
   Plus,
+  Eye,
   Edit,
   ShoppingCart,
   BarChart3,
@@ -49,10 +43,6 @@ import {
   Lock,
   LockOpen,
   AlertCircle,
-  Info,
-  Pencil,
-  Users,
-  Trash2,
 } from "lucide-react"
 import { getPlanData, formatPlanValue } from "@/lib/plan-data"
 
@@ -84,15 +74,10 @@ interface AnuncioCard {
   ejecuciones: number
   consumoMes: number
   // Stats modal specific fields - might not be in DB schema directly
-  leadsRebotados?: number
-  datosIncompletos?: number
-  necesidadAval?: number
+  rebotesAltos?: boolean
+  incompletosAlto?: boolean
+  necesidadAval?: boolean
   Fecha_Activacion_Programada?: string | null // Added for scheduled activation
-  // New fields for detailed stats
-  aceptados?: number
-  visitaPropuesta?: number
-  visitaCompletada?: number
-  descartados?: number
 }
 
 interface CreationStep {
@@ -165,34 +150,25 @@ export default function AnunciosPage() {
   const [showInfoFaqsModal, setShowInfoFaqsModal] = useState(false)
   const [showStatsModal, setShowStatsModal] = useState(false)
   const [selectedAnuncioForStats, setSelectedAnuncioForStats] = useState<AnuncioCard | null>(null)
-  const [statsTimeframe, setStatsTimeframe] = useState<"1day" | "7days" | "1month">("7days")
-  const [statsFilteredLeads, setStatsFilteredLeads] = useState<any[]>([])
-  const [statsFilterType, setStatsFilterType] = useState<string | null>(null)
-  const [loadingStatsLeads, setLoadingStatsLeads] = useState(false)
   const [showArchiveDialog, setShowArchiveDialog] = useState(false)
   const [archivingAnuncio, setArchivingAnuncio] = useState<AnuncioCard | null>(null)
-  const [completosPopoverOpen, setCompletosPopoverOpen] = useState<string | null>(null)
-  const [aceptadosPopoverOpen, setAceptadosPopoverOpen] = useState<string | null>(null)
+  const [expandedLeadsAnuncio, setExpandedLeadsAnuncio] = useState<string | null>(null)
   const [completosLeads, setCompletosLeads] = useState<any[]>([])
-  const [aceptadosLeads, setAceptadosLeads] = useState<any[]>([])
   const [loadingCompletos, setLoadingCompletos] = useState(false)
-  const [loadingAceptados, setLoadingAceptados] = useState(false)
+  const [infoFaqsData, setInfoFaqsData] = useState({
+    informacionDetallada: "",
+    faqs: [{ pregunta: "", respuesta: "" }],
+  })
 
   const [isReferenciaEditable, setIsReferenciaEditable] = useState(false)
 
   const { inmobiliariaId, loading: inmobiliariaLoading } = useInmobiliaria()
 
+  const router = useRouter()
   const supabase = createClient()
-  const router = useRouter() // Declare router variable
 
   // Variables needed for linting fixes
   const [creatingAnuncio, setCreatingAnuncio] = useState(false)
-  const [expandedLeadsAnuncio, setExpandedLeadsAnuncio] = useState<string | null>(null) // Declare expandedLeadsAnuncio
-  const [infoFaqsData, setInfoFaqsData] = useState({
-    // Declare infoFaqsData
-    informacionDetallada: "",
-    faqs: [{ pregunta: "", respuesta: "" }],
-  })
 
   const handleOpenArchiveDialog = (anuncio: AnuncioCard) => {
     setArchivingAnuncio(anuncio)
@@ -229,38 +205,6 @@ export default function AnunciosPage() {
       toast({
         title: "Error",
         description: "Error al archivar el anuncio",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleActivateAnuncio = async () => {
-    if (!archivingAnuncio) return
-
-    try {
-      const { error } = await supabase.from("Anuncios").update({ Activacion: "Activo" }).eq("ida", archivingAnuncio.id)
-
-      if (error) {
-        console.log("[v0] Error activating anuncio:", error)
-        toast({
-          title: "Error",
-          description: "No se pudo activar el anuncio",
-          variant: "destructive",
-        })
-      } else {
-        toast({
-          title: "Éxito",
-          description: "Anuncio activado correctamente",
-        })
-        setShowArchiveDialog(false)
-        setArchivingAnuncio(null)
-        await fetchAnuncios() // Refresh the list
-      }
-    } catch (err) {
-      console.log("[v0] Error in handleActivateAnuncio:", err)
-      toast({
-        title: "Error",
-        description: "Error al activar el anuncio",
         variant: "destructive",
       })
     }
@@ -466,7 +410,8 @@ export default function AnunciosPage() {
             return createdAt >= twentyFourHoursAgo
           }).length || 0
 
-        const datosCompletosCount = allLeads?.filter((lead) => lead.Estado === "Datos Completos").length || 0
+        const datosCompletosCount =
+          allLeads?.filter((lead) => lead.Estado === "Datos completos" || lead.Estado === "datos completos").length || 0
 
         const aLaEspera = leadsTotales - datosCompletosCount
 
@@ -541,7 +486,7 @@ export default function AnunciosPage() {
         if (nuevosHoy === 0 && leadsTotales > 0) healthScore -= 15 // No new leads today
         if (leadsTotales === 0) healthScore -= 40 // No leads at all
 
-        const ejecuciones = leadsTotales
+        const ejecuciones = leadsTotales + emailsEnviados
 
         cards.push({
           id: anuncio.ida, // Use "ida" instead of "id"
@@ -599,14 +544,7 @@ export default function AnunciosPage() {
   const handleToggleEstado = async (anuncioId: string, currentActivacion: string) => {
     setProcessingId(anuncioId)
     try {
-      let newActivacion: string
-
-      // If archived, activate it. Otherwise toggle between Activo and Pausado
-      if (currentActivacion === "Archivado") {
-        newActivacion = "Activo"
-      } else {
-        newActivacion = currentActivacion === "Activo" ? "Pausado" : "Activo"
-      }
+      const newActivacion = currentActivacion === "Activo" ? "Pausado" : "Activo"
 
       const { error } = await supabase.from("Anuncios").update({ Activacion: newActivacion }).eq("ida", anuncioId)
 
@@ -620,18 +558,14 @@ export default function AnunciosPage() {
         setAnunciosCards((prev) =>
           prev.map((anuncio) =>
             anuncio.id === anuncioId
-              ? {
-                  ...anuncio,
-                  activacion: newActivacion,
-                  estado: newActivacion === "Activo" ? "activo" : newActivacion === "Pausado" ? "pausado" : "archivado",
-                }
+              ? { ...anuncio, activacion: newActivacion, estado: newActivacion === "Activo" ? "activo" : "pausado" }
               : anuncio,
           ),
         )
 
         toast({
           title: "Éxito",
-          description: `Anuncio ${newActivacion === "Archivado" ? "archivado" : newActivacion.toLowerCase()}`,
+          description: `Anuncio ${newActivacion.toLowerCase()}`,
         })
       }
     } catch (err) {
@@ -706,11 +640,11 @@ export default function AnunciosPage() {
           .from("Clientes")
           .select("*")
           .eq("Inmueble", anuncio.referencia)
-          .eq("Estado", "Datos Completos")
+          .eq("Estado", "Datos completos")
           .order("created_at", { ascending: false })
 
         if (error) {
-          console.log("[v0] Error fetching 【completos】 leads:", error)
+          console.log("[v0] Error fetching completos leads:", error)
           toast({
             title: "Error",
             description: "No se pudieron cargar los leads completos",
@@ -914,219 +848,15 @@ export default function AnunciosPage() {
   const handleShowStats = async (anuncio: AnuncioCard) => {
     console.log(`[v0] Loading statistics for anuncio ${anuncio.id}`)
 
-    try {
-      // Fetch all leads for this anuncio
-      const { data: allLeads, error: leadsError } = await supabase
-        .from("Clientes")
-        .select("id, created_at, Estado, Correo, Nombre, Telefono, Ingresos")
-        .ilike("Inmueble", anuncio.referencia)
-
-      if (leadsError) {
-        console.log("[v0] Error fetching leads for stats:", leadsError)
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar las estadísticas",
-          variant: "destructive",
-        })
-        return
-      }
-
-      const leads = allLeads || []
-
-      // Calculate real metrics
-      const leadsTotales = leads.length
-      const datosCompletos = leads.filter((l) => l.Estado === "Datos Completos").length
-      const porcentajeCompletos = leadsTotales > 0 ? (datosCompletos / leadsTotales) * 100 : 0
-
-      // Count leads by estado for "Preparados para la fase de visita"
-      const aceptados = leads.filter((l) => l.Estado === "Aceptado").length
-      const visitaPropuesta = leads.filter((l) => l.Estado === "Visita Propuesta").length
-      const visitaCompletada = leads.filter((l) => l.Estado === "Visita Completada").length
-      const descartados = leads.filter((l) => l.Estado === "Descartado").length
-
-      // Leads Rebotados: leads who haven't interacted (no emails sent/received to them)
-      const leadEmails = leads.map((l) => l.Correo).filter(Boolean)
-      let leadsConInteraccion = 0
-
-      if (leadEmails.length > 0) {
-        const { data: correosData } = await supabase
-          .from("Correos")
-          .select("to, from")
-          .or(`to.in.(${leadEmails.join(",")}),from.in.(${leadEmails.join(",")})`)
-
-        const emailsConInteraccion = new Set(correosData?.flatMap((c) => [c.to, c.from].filter(Boolean)) || [])
-        leadsConInteraccion = leads.filter((l) => l.Correo && emailsConInteraccion.has(l.Correo)).length
-      }
-
-      const leadsRebotados = leadsTotales - leadsConInteraccion
-
-      // Datos Incompletos: count leads with Estado = "Datos Incompletos"
-      const datosIncompletos = leads.filter((l) => l.Estado === "Datos Incompletos").length
-
-      // Necesidad de Aval: count leads with Estado = "Pedir Aval"
-      const necesidadAval = leads.filter((l) => l.Estado === "Pedir Aval").length
-
-      // Calculate sparkline data based on timeframe
-      const now = new Date()
-      const timeframeMap = {
-        "1day": 24, // 24 hours
-        "7days": 7,
-        "1month": 4, // 4 weeks
-      }
-      const periods = timeframeMap[statsTimeframe]
-      const sparklineData = Array(periods).fill(0)
-
-      leads.forEach((lead) => {
-        const createdAt = new Date(lead.created_at)
-
-        if (statsTimeframe === "1day") {
-          // Calculate hours difference for 1 day view
-          const hoursDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60))
-          if (hoursDiff >= 0 && hoursDiff < 24) {
-            sparklineData[23 - hoursDiff]++
-          }
-        } else if (statsTimeframe === "1month") {
-          // Calculate weeks difference for 1 month view
-          const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
-          const weeksDiff = Math.floor(daysDiff / 7)
-          if (weeksDiff >= 0 && weeksDiff < 4) {
-            sparklineData[3 - weeksDiff]++
-          }
-        } else {
-          // Calculate days difference for 7 days view
-          const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
-          if (daysDiff >= 0 && daysDiff < 7) {
-            sparklineData[6 - daysDiff]++
-          }
-        }
-      })
-
-      const statsData: AnuncioCard = {
-        ...anuncio, // Spread existing properties
-        datosCompletos,
-        porcentajeCompletos,
-        aceptados,
-        visitaPropuesta,
-        visitaCompletada,
-        descartados,
-        sparklineData,
-        leadsRebotados,
-        datosIncompletos,
-        necesidadAval,
-        // Ensure all required AnuncioCard properties are present, even if not directly used here
-        nuevosHoy: anuncio.nuevosHoy,
-        emailsEnviados: anuncio.emailsEnviados,
-        leadsTotales: anuncio.leadsTotales,
-        aLaEspera: anuncio.aLaEspera,
-        tiempoAhorrado: anuncio.tiempoAhorrado,
-        ultimaActividad: anuncio.ultimaActividad,
-        fechaUltimaActividad: anuncio.fechaUltimaActividad,
-        estado: anuncio.estado,
-        healthScore: anuncio.healthScore,
-        ejecuciones: anuncio.ejecuciones,
-        consumoMes: anuncio.consumoMes,
-      }
-
-      setSelectedAnuncioForStats(statsData)
-      setStatsFilteredLeads([])
-      setStatsFilterType(null)
-      setShowStatsModal(true)
-    } catch (error) {
-      console.log("[v0] Error in handleShowStats:", error)
-      toast({
-        title: "Error",
-        description: "Error al cargar estadísticas",
-        variant: "destructive",
-      })
+    // Populate dummy stats for demonstration
+    const dummyStats = {
+      rebotesAltos: Math.random() > 0.5,
+      incompletosAlto: Math.random() > 0.7,
+      necesidadAval: Math.random() > 0.3,
     }
-  }
 
-  const showLeadsByEstado = async (estado: string) => {
-    if (!selectedAnuncioForStats) return
-
-    setLoadingStatsLeads(true)
-    setStatsFilterType(estado)
-
-    try {
-      const { data, error } = await supabase
-        .from("Clientes")
-        .select("id, Nombre, Correo, Telefono, Ingresos, Estado, created_at")
-        .ilike("Inmueble", selectedAnuncioForStats.referencia)
-        .eq("Estado", estado)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.log("[v0] Error fetching filtered leads:", error)
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los leads",
-          variant: "destructive",
-        })
-        setStatsFilteredLeads([])
-      } else {
-        setStatsFilteredLeads(data || [])
-      }
-    } catch (error) {
-      console.log("[v0] Error in showLeadsByEstado:", error)
-      setStatsFilteredLeads([])
-    } finally {
-      setLoadingStatsLeads(false)
-    }
-  }
-
-  const handleTimeframeChange = (timeframe: "1day" | "7days" | "1month") => {
-    setStatsTimeframe(timeframe)
-
-    // Recalculate sparkline data based on new timeframe without reloading everything
-    if (selectedAnuncioForStats) {
-      const now = new Date()
-      const timeframeMap = {
-        "1day": 24, // 24 hours
-        "7days": 7,
-        "1month": 4, // 4 weeks
-      }
-      const periods = timeframeMap[timeframe]
-      const sparklineData = Array(periods).fill(0)
-
-      // We need to re-fetch leads to recalculate sparkline
-      supabase
-        .from("Clientes")
-        .select("created_at")
-        .ilike("Inmueble", selectedAnuncioForStats.referencia)
-        .then(({ data: leads }) => {
-          if (leads) {
-            leads.forEach((lead) => {
-              const createdAt = new Date(lead.created_at)
-
-              if (timeframe === "1day") {
-                // Calculate hours difference for 1 day view
-                const hoursDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60))
-                if (hoursDiff >= 0 && hoursDiff < 24) {
-                  sparklineData[23 - hoursDiff]++
-                }
-              } else if (timeframe === "1month") {
-                // Calculate weeks difference for 1 month view
-                const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
-                const weeksDiff = Math.floor(daysDiff / 7)
-                if (weeksDiff >= 0 && weeksDiff < 4) {
-                  sparklineData[3 - weeksDiff]++
-                }
-              } else {
-                // Calculate days difference for 7 days view
-                const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
-                if (daysDiff >= 0 && daysDiff < 7) {
-                  sparklineData[6 - daysDiff]++
-                }
-              }
-            })
-          }
-
-          setSelectedAnuncioForStats({
-            ...selectedAnuncioForStats,
-            sparklineData,
-          })
-        })
-    }
+    setSelectedAnuncioForStats({ ...anuncio, ...dummyStats })
+    setShowStatsModal(true)
   }
 
   // New functions for managing FAQs
@@ -1538,103 +1268,6 @@ export default function AnunciosPage() {
     setShowPlanSelector(true)
   }
 
-  // Placeholder functions to avoid errors in the JSX
-  const handleEditAnuncio = (anuncio: AnuncioCard) => {
-    handleEditar(anuncio)
-  }
-  const handleOpenStatsModal = (anuncio: AnuncioCard) => {
-    handleShowStats(anuncio)
-  }
-  const handleDeleteAnuncio = async (anuncioId: string) => {
-    // Implement delete logic if needed
-    console.log("Deleting anuncio:", anuncioId)
-    try {
-      const { error } = await supabase.from("Anuncios").delete().eq("ida", anuncioId)
-      if (error) {
-        toast({
-          title: "Error",
-          description: "No se pudo eliminar el anuncio",
-          variant: "destructive",
-        })
-      } else {
-        toast({
-          title: "Éxito",
-          description: "Anuncio eliminado correctamente",
-        })
-        await fetchAnuncios()
-      }
-    } catch (err) {
-      console.error("Error deleting anuncio:", err)
-      toast({
-        title: "Error",
-        description: "Error al eliminar el anuncio",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleFetchCompletosLeads = async (anuncio: AnuncioCard) => {
-    setLoadingCompletos(true)
-
-    try {
-      const { data, error } = await supabase
-        .from("Clientes")
-        .select("*")
-        .eq("Inmueble", anuncio.referencia)
-        .eq("Estado", "Datos Completos")
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.log("[v0] Error fetching 【completos】 leads:", error.message)
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los leads completos",
-          variant: "destructive",
-        })
-        setCompletosLeads([])
-      } else {
-        console.log("[v0] Completos leads loaded:", data?.length || 0)
-        setCompletosLeads(data || [])
-      }
-    } catch (err) {
-      console.log("[v0] Error in handleFetchCompletosLeads:", err)
-      setCompletosLeads([])
-    } finally {
-      setLoadingCompletos(false)
-    }
-  }
-
-  const handleFetchAceptadosLeads = async (anuncio: AnuncioCard) => {
-    setLoadingAceptados(true)
-
-    try {
-      const { data, error } = await supabase
-        .from("Clientes")
-        .select("*")
-        .eq("Inmueble", anuncio.referencia)
-        .eq("Estado", "Aceptado")
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.log("[v0] Error fetching aceptados leads:", error)
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los leads aceptados",
-          variant: "destructive",
-        })
-        setAceptadosLeads([])
-      } else {
-        console.log("[v0] Aceptados leads loaded:", data?.length || 0)
-        setAceptadosLeads(data || [])
-      }
-    } catch (err) {
-      console.log("[v0] Error in handleFetchAceptadosLeads:", err)
-      setAceptadosLeads([])
-    } finally {
-      setLoadingAceptados(false)
-    }
-  }
-
   return (
     <TooltipProvider>
       <div className="p-4 md:p-8 space-y-6">
@@ -1823,7 +1456,7 @@ export default function AnunciosPage() {
           <div className="space-y-6">
             <div className="flex gap-3">
               <button
-                className="flex items-center gap-2 px-4 py-1.5 rounded-lg border-2 border-dashed border-primary/30 bg-gradient-to-r from-primary/5 to-primary/15 hover:from-primary/10 hover:to-primary/15 hover:border-primary/50 transition-all cursor-pointer group"
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg border-2 border-dashed border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/15 hover:border-primary/50 transition-all cursor-pointer group"
                 onClick={() => setShowCreationModal(true)}
               >
                 <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors shrink-0">
@@ -1868,69 +1501,69 @@ export default function AnunciosPage() {
                 return (
                   <div key={anuncio.id} className="space-y-2">
                     <Card className={cardClassName}>
-                      {/* Updated CardHeader with new layout and icons */}
-                      <CardHeader className="pb-2 pt-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <CardTitle className="text-base font-semibold truncate">{anuncio.referencia}</CardTitle>
-                              <Badge
-                                variant={
-                                  anuncio.estado === "activo"
-                                    ? "default"
-                                    : anuncio.estado === "pausado"
-                                      ? "secondary"
+                      <CardHeader className="pb-0 pt-3">
+                        <div className="space-y-1">
+                          {/* Title row */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-semibold text-base truncate">{anuncio.referencia}</h3>
+                                <Badge
+                                  variant={
+                                    anuncio.estado === "activo"
+                                      ? "default"
+                                      : anuncio.estado === "pausado"
+                                        ? "secondary"
+                                        : "outline"
+                                  }
+                                  className={`text-[10px] px-1.5 py-0 ${
+                                    anuncio.estado === "pausado"
+                                      ? "bg-yellow-100 text-yellow-800 border-yellow-300"
                                       : anuncio.estado === "archivado"
-                                        ? "outline"
-                                        : "destructive"
-                                }
-                                className="shrink-0"
-                              >
-                                {anuncio.estado === "activo"
-                                  ? "Activo"
-                                  : anuncio.estado === "pausado"
-                                    ? "Pausado"
-                                    : anuncio.estado === "archivado"
-                                      ? "Archivado"
-                                      : "Error"}
-                              </Badge>
+                                        ? "bg-gray-100 text-gray-600"
+                                        : ""
+                                  }`}
+                                >
+                                  {anuncio.activacion}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">{anuncio.direccion}</p>
                             </div>
-                            <CardDescription className="text-xs line-clamp-1">{anuncio.direccion}</CardDescription>
-                          </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleEditAnuncio(anuncio)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                  <MoreVertical className="h-3.5 w-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleVerLeads(anuncio.referencia)}>
-                                  <Users className="h-3.5 w-3.5 mr-2" />
-                                  Ver Leads
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleOpenStatsModal(anuncio)}>
-                                  <BarChart3 className="h-3.5 w-3.5 mr-2" />
-                                  Ver Estadísticas
-                                </DropdownMenuItem>
-                                {anuncio.estado === "archivado" ? (
-                                  <DropdownMenuItem
-                                    onClick={() => handleOpenArchiveDialog(anuncio)}
-                                    className="text-green-600"
-                                  >
-                                    <CheckCircle className="h-3.5 w-3.5 mr-2" />
-                                    Activar
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs px-2 bg-transparent"
+                                onClick={() => handleOpenScheduleDialog(anuncio.id)}
+                              >
+                                <Calendar className="h-3 w-3 mr-1" />
+                                Programar
+                              </Button>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                    <MoreVertical className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEditar(anuncio)}>
+                                    <Edit className="h-3.5 w-3.5 mr-2" />
+                                    Editar anuncio
                                   </DropdownMenuItem>
-                                ) : (
+                                  <DropdownMenuItem onClick={() => handleVerCompletos(anuncio.referencia)}>
+                                    <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                                    Ver "Datos completos"
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleInfoFaqs(anuncio)}>
+                                    <Settings className="h-3.5 w-3.5 mr-2" />
+                                    Editar info & FAQs
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleShowStats(anuncio)}>
+                                    <Eye className="h-3.5 w-3.5 mr-2" />
+                                    Ver Estadísticas
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => handleOpenArchiveDialog(anuncio)}
                                     className="text-orange-600"
@@ -1938,30 +1571,33 @@ export default function AnunciosPage() {
                                     <Archive className="h-3.5 w-3.5 mr-2" />
                                     Archivar
                                   </DropdownMenuItem>
-                                )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteAnuncio(anuncio.id)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                  Eliminar
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center justify-center gap-4 py-2 mt-2">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            {processingId === anuncio.id ? "Procesando..." : anuncio.activacion}
-                          </span>
-                          <Switch
-                            checked={anuncio.estado === "activo"}
-                            onCheckedChange={() => handleToggleEstado(anuncio.id, anuncio.activacion)}
-                            disabled={processingId === anuncio.id}
-                            className="scale-150"
-                          />
+                          <div className="flex justify-center mt-1">
+                            <Button
+                              size="sm"
+                              className="bg-primary hover:bg-primary/90 h-7 text-xs"
+                              onClick={() => handleVerLeads(anuncio.referencia)}
+                            >
+                              <Eye className="h-3 w-3 mr-1.5" />
+                              Ver leads filtrados ({anuncio.leadsTotales})
+                            </Button>
+                          </div>
+
+                          <div className="flex items-center justify-center gap-3 py-0.5">
+                            <span className="text-sm font-medium">
+                              {processingId === anuncio.id ? "Procesando..." : anuncio.activacion}
+                            </span>
+                            <Switch
+                              checked={anuncio.estado === "activo"}
+                              onCheckedChange={() => handleToggleEstado(anuncio.id, anuncio.activacion)}
+                              disabled={processingId === anuncio.id}
+                              className="scale-125"
+                            />
+                          </div>
                         </div>
                       </CardHeader>
 
@@ -1984,8 +1620,8 @@ export default function AnunciosPage() {
                               <div className="text-[10px] text-muted-foreground">Nº Completos HOY</div>
                             </div>
                             <div className="text-center">
-                              <div className="text-lg font-bold text-orange-600">{anuncio.leadsTotales}</div>
-                              <div className="text-[10px] text-muted-foreground">Total Leads</div>
+                              <div className="text-lg font-bold text-orange-600">{anuncio.aLaEspera}</div>
+                              <div className="text-[10px] text-muted-foreground">A la espera</div>
                             </div>
                             <div className="text-center">
                               <div className="text-lg font-bold text-indigo-600">
@@ -2011,14 +1647,11 @@ export default function AnunciosPage() {
                           <div className="flex items-center justify-between mb-0.5">
                             <span className="text-xs">Ejecuciones: {anuncio.ejecuciones}</span>
                             <span className="text-xs">
-                              {planLimit > 0 ? ((anuncio.ejecuciones / planLimit) * 100).toFixed(1) : 0}% del plan
+                              {((anuncio.ejecuciones / planLimit) * 100).toFixed(1)}% del plan
                             </span>
                           </div>
 
-                          <Progress
-                            value={planLimit > 0 ? (anuncio.ejecuciones / planLimit) * 100 : 0}
-                            className="h-1"
-                          />
+                          <Progress value={(anuncio.ejecuciones / planLimit) * 100} className="h-1" />
                         </div>
 
                         {/* Quick Actions */}
@@ -2032,120 +1665,15 @@ export default function AnunciosPage() {
                             <Edit className="h-3 w-3 mr-1" />
                             Editar
                           </Button>
-                          <Popover
-                            open={completosPopoverOpen === anuncio.id}
-                            onOpenChange={(open) => {
-                              if (open) {
-                                setCompletosPopoverOpen(anuncio.id)
-                                handleFetchCompletosLeads(anuncio)
-                              } else {
-                                setCompletosPopoverOpen(null)
-                                setCompletosLeads([])
-                              }
-                            }}
+                          <Button
+                            size="sm"
+                            variant={expandedLeadsAnuncio === anuncio.id ? "default" : "outline"}
+                            className="flex-1 bg-transparent text-xs h-7"
+                            onClick={() => handleToggleCompletosExpanded(anuncio)}
                           >
-                            <PopoverTrigger asChild>
-                              <Button size="sm" variant="outline" className="flex-1 bg-transparent text-xs h-7">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Completos ({anuncio.datosCompletos})
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-96" align="start">
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between border-b pb-2">
-                                  <h4 className="font-semibold text-sm">Leads con Datos Completos</h4>
-                                  <Badge variant="secondary">{anuncio.datosCompletos}</Badge>
-                                </div>
-                                {loadingCompletos ? (
-                                  <div className="flex items-center justify-center py-6">
-                                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                                  </div>
-                                ) : completosLeads.length === 0 ? (
-                                  <p className="text-sm text-muted-foreground text-center py-6">
-                                    No hay leads con datos completos
-                                  </p>
-                                ) : (
-                                  <div className="space-y-2 max-h-80 overflow-y-auto">
-                                    {completosLeads.map((lead) => (
-                                      <div
-                                        key={lead.idc}
-                                        className="p-2.5 bg-muted/50 rounded-md hover:bg-muted transition-colors"
-                                      >
-                                        <p className="font-medium text-sm">{lead.Nombre}</p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">{lead.Correo}</p>
-                                        {lead.Telefono && (
-                                          <p className="text-xs text-muted-foreground">{lead.Telefono}</p>
-                                        )}
-                                        {lead.Ingresos && (
-                                          <p className="text-xs text-muted-foreground mt-1">
-                                            Ingresos: {lead.Ingresos}€
-                                          </p>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-
-                          <Popover
-                            open={aceptadosPopoverOpen === anuncio.id}
-                            onOpenChange={(open) => {
-                              if (open) {
-                                setAceptadosPopoverOpen(anuncio.id)
-                                handleFetchAceptadosLeads(anuncio)
-                              } else {
-                                setAceptadosPopoverOpen(null)
-                                setAceptadosLeads([])
-                              }
-                            }}
-                          >
-                            <PopoverTrigger asChild>
-                              <Button size="sm" variant="outline" className="flex-1 bg-transparent text-xs h-7">
-                                <UserCheck className="h-3 w-3 mr-1" />
-                                Aprobados ({anuncio.aceptados || 0})
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-96" align="start">
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between border-b pb-2">
-                                  <h4 className="font-semibold text-sm">Leads Aprobados</h4>
-                                  <Badge variant="secondary">{anuncio.aceptados || 0}</Badge>
-                                </div>
-                                {loadingAceptados ? (
-                                  <div className="flex items-center justify-center py-6">
-                                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                                  </div>
-                                ) : aceptadosLeads.length === 0 ? (
-                                  <p className="text-sm text-muted-foreground text-center py-6">
-                                    No hay leads aprobados
-                                  </p>
-                                ) : (
-                                  <div className="space-y-2 max-h-80 overflow-y-auto">
-                                    {aceptadosLeads.map((lead) => (
-                                      <div
-                                        key={lead.idc}
-                                        className="p-2.5 bg-muted/50 rounded-md hover:bg-muted transition-colors"
-                                      >
-                                        <p className="font-medium text-sm">{lead.Nombre}</p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">{lead.Correo}</p>
-                                        {lead.Telefono && (
-                                          <p className="text-xs text-muted-foreground">{lead.Telefono}</p>
-                                        )}
-                                        {lead.Ingresos && (
-                                          <p className="text-xs text-muted-foreground mt-1">
-                                            Ingresos: {lead.Ingresos}€
-                                          </p>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Completos ({anuncio.datosCompletos})
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -2155,7 +1683,6 @@ export default function AnunciosPage() {
                             <Settings className="h-3 w-3 mr-1" />
                             Info & FAQs
                           </Button>
-
                           <Button
                             size="sm"
                             variant="outline"
@@ -2171,6 +1698,63 @@ export default function AnunciosPage() {
                         </div>
                       </CardContent>
                     </Card>
+
+                    {expandedLeadsAnuncio === anuncio.id && (
+                      <Card className="bg-muted/30 border-l-4 border-l-green-500/40">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm">Leads con Datos Completos - {anuncio.referencia}</CardTitle>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setExpandedLeadsAnuncio(null)
+                                setCompletosLeads([])
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {loadingCompletos ? (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            </div>
+                          ) : completosLeads.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              No hay leads con datos completos para este anuncio
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {completosLeads.map((lead) => (
+                                <div
+                                  key={lead.idc}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border hover:border-primary/50 transition-colors"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">{lead.Nombre}</p>
+                                    <div className="flex items-center gap-3 mt-1">
+                                      <p className="text-xs text-muted-foreground">{lead.Correo}</p>
+                                      {lead.Telefono && (
+                                        <p className="text-xs text-muted-foreground">{lead.Telefono}</p>
+                                      )}
+                                    </div>
+                                    {lead.Ingresos && (
+                                      <p className="text-xs text-muted-foreground mt-1">Ingresos: {lead.Ingresos}€</p>
+                                    )}
+                                  </div>
+                                  <Button size="sm" onClick={() => handleProgramarVisita(lead.idc)} className="ml-2">
+                                    <UserCheck className="h-3.5 w-3.5 mr-1" />
+                                    Programar visita
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 )
               })}
@@ -2580,7 +2164,7 @@ export default function AnunciosPage() {
               {/* FAQs Section */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Preguntas Frecuentes (FAQs)</Label>
+                  <Label>Preguntas Frecuentes (FAQs)</Label>
                   <Button size="sm" variant="outline" onClick={addFaq}>
                     <Plus className="h-4 w-4 mr-1" />
                     Añadir FAQ
@@ -2629,7 +2213,7 @@ export default function AnunciosPage() {
         </Dialog>
 
         <Dialog open={showStatsModal} onOpenChange={setShowStatsModal}>
-          <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Estadísticas - {selectedAnuncioForStats?.referencia}</DialogTitle>
               <DialogDescription>
@@ -2639,8 +2223,8 @@ export default function AnunciosPage() {
             <div className="space-y-6 py-4">
               {selectedAnuncioForStats && (
                 <>
-                  {/* CHANGE Updated main metrics grid with real data and new structure */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {/* Métricas Principales */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <div className="text-2xl font-bold text-blue-600">{selectedAnuncioForStats.leadsTotales}</div>
                       <div className="text-sm text-blue-800">Leads Totales</div>
@@ -2655,124 +2239,15 @@ export default function AnunciosPage() {
                       </div>
                       <div className="text-sm text-purple-800">Tasa Conversión</div>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-600">{selectedAnuncioForStats.descartados}</div>
-                      <div className="text-sm text-gray-700">Descartados</div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">{selectedAnuncioForStats.healthScore}</div>
+                      <div className="text-sm text-orange-800">Health Score</div>
                     </div>
                   </div>
-                  {/* END CHANGE */}
 
-                  {/* CHANGE New section: Preparados para la fase de visita */}
+                  {/* Tendencia Semanal */}
                   <div className="space-y-3">
-                    <h4 className="font-semibold">Preparados para la fase de visita</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <Button
-                        variant="outline"
-                        className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-emerald-50 bg-transparent"
-                        onClick={() => showLeadsByEstado("Aceptado")}
-                      >
-                        <div className="text-2xl font-bold text-emerald-600">{selectedAnuncioForStats.aceptados}</div>
-                        <div className="text-sm text-center">Candidatos Aprobados</div>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-blue-50 bg-transparent"
-                        onClick={() => showLeadsByEstado("Visita Propuesta")}
-                      >
-                        <div className="text-2xl font-bold text-blue-600">
-                          {selectedAnuncioForStats.visitaPropuesta}
-                        </div>
-                        <div className="text-sm text-center">Visita Propuesta</div>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-green-50 bg-transparent"
-                        onClick={() => showLeadsByEstado("Visita Completada")}
-                      >
-                        <div className="text-2xl font-bold text-green-600">
-                          {selectedAnuncioForStats.visitaCompletada}
-                        </div>
-                        <div className="text-sm text-center">Visita Completada</div>
-                      </Button>
-                    </div>
-                  </div>
-                  {/* END CHANGE */}
-
-                  {/* CHANGE Display filtered leads when a metric is clicked */}
-                  {statsFilterType && (
-                    <div className="space-y-3 border-t pt-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold">Leads con estado: {statsFilterType}</h4>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setStatsFilteredLeads([])
-                            setStatsFilterType(null)
-                          }}
-                        >
-                          Cerrar
-                        </Button>
-                      </div>
-                      {loadingStatsLeads ? (
-                        <div className="text-center py-4 text-muted-foreground">Cargando...</div>
-                      ) : statsFilteredLeads.length === 0 ? (
-                        <div className="text-center py-4 text-muted-foreground">No hay leads con este estado</div>
-                      ) : (
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                          {statsFilteredLeads.map((lead) => (
-                            <div
-                              key={lead.id}
-                              className="p-3 bg-background rounded-lg border hover:border-primary/50 transition-colors"
-                            >
-                              <div className="flex-1">
-                                <div className="font-medium">{lead.Nombre || "Sin nombre"}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {lead.Correo} • {lead.Telefono || "Sin teléfono"}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-sm font-medium">{lead.Ingresos ? `${lead.Ingresos}€` : "N/A"}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {new Date(lead.created_at).toLocaleDateString("es-ES")}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {/* END CHANGE */}
-
-                  {/* CHANGE Updated Tendencia section with proper grid layout and date labels */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">Tendencia de Leads</h4>
-                      <div className="flex gap-2">
-                        <Button
-                          variant={statsTimeframe === "1day" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleTimeframeChange("1day")}
-                        >
-                          1 día
-                        </Button>
-                        <Button
-                          variant={statsTimeframe === "7days" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleTimeframeChange("7days")}
-                        >
-                          7 días
-                        </Button>
-                        <Button
-                          variant={statsTimeframe === "1month" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleTimeframeChange("1month")}
-                        >
-                          1 mes
-                        </Button>
-                      </div>
-                    </div>
+                    <h4 className="font-semibold">Tendencia de Leads (7 días)</h4>
                     <div className="bg-muted p-4 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-muted-foreground">Actividad diaria</span>
@@ -2780,91 +2255,37 @@ export default function AnunciosPage() {
                           <Sparkline data={selectedAnuncioForStats.sparklineData} />
                         </div>
                       </div>
-                      <div
-                        className={`grid gap-1 text-xs ${
-                          statsTimeframe === "1day"
-                            ? "grid-cols-24"
-                            : statsTimeframe === "7days"
-                              ? "grid-cols-7"
-                              : "grid-cols-4"
-                        }`}
-                      >
-                        {selectedAnuncioForStats.sparklineData.map((value, index) => {
-                          const now = new Date()
-                          let dateLabel = ""
-
-                          if (statsTimeframe === "1day") {
-                            // Show hours for 1 day view
-                            const hoursAgo = selectedAnuncioForStats.sparklineData.length - 1 - index
-                            const date = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000)
-                            dateLabel = date.getHours().toString().padStart(2, "0") + "h"
-                          } else if (statsTimeframe === "7days") {
-                            // Show weekday names for 7 days view
-                            const daysAgo = selectedAnuncioForStats.sparklineData.length - 1 - index
-                            const date = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000)
-                            dateLabel = date.toLocaleDateString("es-ES", { weekday: "short" })
-                          } else {
-                            // Show week numbers for 1 month view
-                            dateLabel = `Sem ${index + 1}`
-                          }
-
-                          return (
-                            <div key={index} className="text-center">
-                              <div className="font-medium">{value}</div>
-                              <div className="text-muted-foreground text-[10px]">{dateLabel}</div>
-                            </div>
-                          )
-                        })}
+                      <div className="grid grid-cols-7 gap-1 text-xs">
+                        {selectedAnuncioForStats.sparklineData.map((value, index) => (
+                          <div key={index} className="text-center">
+                            <div className="font-medium">{value}</div>
+                            <div className="text-muted-foreground">D{index + 1}</div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
-                  {/* END CHANGE */}
 
                   {/* Análisis de Calidad */}
                   <div className="space-y-3">
                     <h4 className="font-semibold">Análisis de Calidad</h4>
                     <div className="grid gap-3">
                       <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center gap-2 cursor-help">
-                              <span className="text-sm">Leads Rebotados</span>
-                              <Info className="h-3 w-3 text-muted-foreground" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              Son leads que han entrado en tu flujo pero no han respondido ni interactuado contigo
-                              ninguna vez. No aparece ninguna comunicación recibida registrada.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                        <Badge
-                          variant={
-                            (selectedAnuncioForStats.leadsRebotados || 0) > selectedAnuncioForStats.leadsTotales * 0.3
-                              ? "destructive"
-                              : "secondary"
-                          }
-                        >
-                          {selectedAnuncioForStats.leadsRebotados || 0}
+                        <span className="text-sm">Rebotes de email</span>
+                        <Badge variant={selectedAnuncioForStats.rebotesAltos ? "destructive" : "secondary"}>
+                          {selectedAnuncioForStats.rebotesAltos ? "Alto" : "Normal"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <span className="text-sm">Datos incompletos</span>
-                        <Badge
-                          variant={
-                            (selectedAnuncioForStats.datosIncompletos || 0) > selectedAnuncioForStats.leadsTotales * 0.2
-                              ? "destructive"
-                              : "secondary"
-                          }
-                        >
-                          {selectedAnuncioForStats.datosIncompletos || 0}
+                        <Badge variant={selectedAnuncioForStats.incompletosAlto ? "destructive" : "secondary"}>
+                          {selectedAnuncioForStats.incompletosAlto ? "Alto" : "Normal"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <span className="text-sm">Necesidad de aval</span>
-                        <Badge variant={(selectedAnuncioForStats.necesidadAval || 0) > 0 ? "default" : "secondary"}>
-                          {selectedAnuncioForStats.necesidadAval || 0}
+                        <Badge variant={selectedAnuncioForStats.necesidadAval ? "destructive" : "secondary"}>
+                          {selectedAnuncioForStats.necesidadAval ? "Requerido" : "No requerido"}
                         </Badge>
                       </div>
                     </div>
@@ -2875,30 +2296,13 @@ export default function AnunciosPage() {
                     <h4 className="font-semibold">Consumo y Rendimiento</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex justify-between text-sm cursor-help">
-                              <span className="flex items-center gap-1">
-                                Ejecuciones del mes
-                                <Info className="h-3 w-3 text-muted-foreground" />
-                              </span>
-                              <span className="font-medium">{selectedAnuncioForStats.ejecuciones}</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              Cada ejecución representa un lead único procesado (identificado por ID único). Este número
-                              refleja el total de leads que han entrado en el flujo de este anuncio.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                        <Progress
-                          value={planLimit > 0 ? (selectedAnuncioForStats.ejecuciones / planLimit) * 100 : 0}
-                          className="h-2"
-                        />
+                        <div className="flex justify-between text-sm">
+                          <span>Ejecuciones del mes</span>
+                          <span className="font-medium">{selectedAnuncioForStats.ejecuciones}</span>
+                        </div>
+                        <Progress value={(selectedAnuncioForStats.ejecuciones / planLimit) * 100} className="h-2" />
                         <div className="text-xs text-muted-foreground">
-                          {planLimit > 0 ? ((selectedAnuncioForStats.ejecuciones / planLimit) * 100).toFixed(1) : 0}%
-                          del plan utilizado
+                          {((selectedAnuncioForStats.ejecuciones / planLimit) * 100).toFixed(1)}% del plan utilizado
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -3013,7 +2417,7 @@ export default function AnunciosPage() {
                   min={new Date().toISOString().slice(0, 16)}
                 />
               </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                 <p className="text-xs text-blue-800">
                   <strong>Nota:</strong> El anuncio se pausará ahora y se activará automáticamente en la fecha
                   seleccionada. Para que esto funcione, necesitas configurar una tarea programada en el servidor.
@@ -3035,16 +2439,9 @@ export default function AnunciosPage() {
         <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {archivingAnuncio?.estado === "archivado" ? "Activar Anuncio" : "Archivar Anuncio"}
-              </DialogTitle>
+              <DialogTitle>Archivar Anuncio</DialogTitle>
               <DialogDescription>
-                {archivingAnuncio?.estado === "archivado" ? (
-                  <div>
-                    ¿Estás seguro de que deseas activar el anuncio "{archivingAnuncio?.referencia}"? El anuncio volverá
-                    a estar activo y procesará nuevos leads.
-                  </div>
-                ) : archivingAnuncio?.estado === "activo" ? (
+                {archivingAnuncio?.estado === "activo" ? (
                   <div className="space-y-2">
                     <div className="text-red-600 font-medium">⚠️ Este anuncio está activo</div>
                     <div>
@@ -3063,18 +2460,11 @@ export default function AnunciosPage() {
               <Button variant="outline" onClick={() => setShowArchiveDialog(false)}>
                 Cancelar
               </Button>
-              {archivingAnuncio?.estado === "archivado" ? (
-                <Button onClick={handleActivateAnuncio} variant="default" className="bg-green-600 hover:bg-green-700">
-                  <LockOpen className="h-4 w-4 mr-2" />
-                  Activar
+              {archivingAnuncio?.estado !== "activo" && (
+                <Button onClick={handleArchiveAnuncio} variant="default">
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archivar
                 </Button>
-              ) : (
-                archivingAnuncio?.estado !== "activo" && (
-                  <Button onClick={handleArchiveAnuncio} variant="default">
-                    <Archive className="h-4 w-4 mr-2" />
-                    Archivar
-                  </Button>
-                )
               )}
             </DialogFooter>
           </DialogContent>

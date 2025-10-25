@@ -22,54 +22,6 @@ Continue building your app on:
 
 **[https://v0.app/chat/projects/jVB9P0Gprsy](https://v0.app/chat/projects/jVB9P0Gprsy)**
 
-## Environment Variables
-
-This project requires the following environment variables to be configured:
-
-### Google Maps API Key
-
-The application uses Google Maps to display property locations. You need to configure the Google Maps API key:
-
-\`\`\`bash
-GOOGLE_MAPS_KEY=your_google_maps_api_key_here
-\`\`\`
-
-**How to get a Google Maps API Key:**
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the "Maps Embed API"
-4. Go to "Credentials" and create an API key
-5. Add the API key to your environment variables in Vercel or your `.env.local` file
-
-**Security Best Practices:**
-
-✅ **Secure Implementation:** This application uses a Server Action to fetch the Google Maps API key, keeping it secure on the server side and preventing direct exposure in client-side code.
-
-**Additional Security Measures:**
-
-1. **Restrict by HTTP referrer (website)** in Google Cloud Console:
-   - Go to your API key settings
-   - Under "Application restrictions", select "HTTP referrers (web sites)"
-   - Add your domains:
-     - `https://your-production-domain.com/*`
-     - `https://*.vercel.app/*` (for Vercel deployments)
-     - `http://localhost:3000/*` (for local development)
-
-2. **Restrict API access**:
-   - Under "API restrictions", select "Restrict key"
-   - Only enable "Maps Embed API" (disable all other APIs)
-
-3. **Set up usage quotas and billing alerts**:
-   - Configure daily quotas to prevent unexpected charges
-   - Set up billing alerts in Google Cloud Console
-
-4. **Monitor usage**:
-   - Regularly check your API usage in Google Cloud Console
-   - Review the API key usage logs for suspicious activity
-
-**Note:** Client-side exposure of the Maps Embed API key is standard practice and unavoidable for browser-based map displays. The security measures above are specifically designed for this use case.
-
 ## How It Works
 
 1. Create and modify your project using [v0.app](https://v0.app)

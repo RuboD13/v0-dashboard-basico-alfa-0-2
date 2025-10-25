@@ -43,6 +43,7 @@ import {
 import { useToast } from "@/hooks/use-toast" // Added useToast hook
 import React from "react" // Imported React
 import { LeadApproveWrapper } from "@/components/lead-approve-wrapper"
+import { LeadDenyWrapper } from "@/components/lead-deny-wrapper"
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -50,11 +51,23 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 )
 
-interface Lead {
-  id: string
-  IDC?: string
-  created_at: string
-  Estado?: string
+type Lead = {
+  idc: number
+  IDC?: number
+  created_at?: string
+  Estado?:
+    | "Datos Incompletos"
+    | "Completo"
+    | "Aprobado"
+    | "Descartado"
+    | "Necesidad de Aval"
+    | "Pendiente"
+    | "Validado"
+    | "Completado"
+    | "Rechazado"
+    | "Aceptado"
+    | "Descartado"
+    | "Pedir Aval"
   Pedir_Aval?: boolean
   Nombre?: string
   Correo?: string
@@ -71,13 +84,37 @@ interface Lead {
   Documento_2?: string
   Pais_2?: string
   Ingresos_2?: number
+  "Correo 2"?: string
+  "Telefono 2"?: string
+  "Codigo_Postal 2"?: string
+  tipo2?: string
   Persona_3?: string
   Tipo_Documento_3?: string
   Documento_3?: string
   Ingresos_3?: number
+  "Correo 3"?: string
+  "Telefono 3"?: string
+  "Codigo_Postal 3"?: string
+  "Pais 3"?: string
+  tipo3?: string
+  Persona_4?: string
+  "Tipo_Documento 4"?: string
+  Documento_4?: string
+  "Pais 4"?: string
+  Ingresos_4?: number
+  "Correo 4"?: string
+  "Telefono 4"?: string
+  "Codigo_Postal 4"?: string
+  tipo4?: string
+  Obsevaciones?: string
+  Recordatorio?: boolean
+  usuario?: number
+  visita_propuesta?: boolean
+  aceptado?: boolean
+  Fecha_Datos_Completos?: string
+  "fecha de visita"?: string
+  "visista completada"?: boolean
   Observaciones?: string
-  Recordatorio?: string
-  usuario?: string
 }
 
 interface Advertisement {
@@ -126,7 +163,7 @@ export default function LeadsPage() {
   const [conversionRate, setConversionRate] = useState(0)
   const [isEditingPersonalInfo, setIsEditingPersonalInfo] = useState(false)
   const [editFormData, setEditFormData] = useState<Partial<Lead>>({})
-  const [selectedPersona, setSelectedPersona] = useState<1 | 2 | 3>(1)
+  const [selectedPersona, setSelectedPersona] = useState<1 | 2 | 3 | 4>(1)
   const [documentStatus, setDocumentStatus] = useState<{ [key: string]: "pending" | "verified" | "not_verified" }>({
     dni: "pending",
     income: "pending",
@@ -149,6 +186,7 @@ export default function LeadsPage() {
     persona1Income: number
     persona2Income: number
     persona3Income: number
+    persona4Income: number // Added for Persona 4 (Aval)
     actualRent: number | null
     minRequiredIncome: number | null
     idealIncome: number | null
@@ -420,6 +458,29 @@ export default function LeadsPage() {
             Documento_2: editFormData.Documento_2,
             Pais_2: editFormData.Pais_2,
             Ingresos_2: editFormData.Ingresos_2,
+            "Correo 2": editFormData["Correo 2"],
+            "Telefono 2": editFormData["Telefono 2"],
+            "Codigo_Postal 2": editFormData["Codigo_Postal 2"],
+            tipo2: editFormData.tipo2,
+
+            Persona_3: editFormData.Persona_3,
+            Tipo_Documento_3: editFormData.Tipo_Documento_3,
+            Documento_3: editFormData.Documento_3,
+            Ingresos_3: editFormData.Ingresos_3,
+            "Correo 3": editFormData["Correo 3"],
+            "Telefono 3": editFormData["Telefono 3"],
+            "Codigo_Postal 3": editFormData["Codigo_Postal 3"],
+            tipo3: editFormData.tipo3,
+
+            Persona_4: editFormData.Persona_4,
+            "Tipo_Documento 4": editFormData["Tipo_Documento 4"],
+            Documento_4: editFormData.Documento_4,
+            "Pais 4": editFormData["Pais 4"],
+            Ingresos_4: editFormData.Ingresos_4,
+            "Correo 4": editFormData["Correo 4"],
+            "Telefono 4": editFormData["Telefono 4"],
+            "Codigo_Postal 4": editFormData["Codigo_Postal 4"],
+            tipo4: editFormData.tipo4,
           }),
           ...(selectedPersona === 2 && {
             Persona_2: editFormData.Persona_2,
@@ -427,12 +488,31 @@ export default function LeadsPage() {
             Documento_2: editFormData.Documento_2,
             Pais_2: editFormData.Pais_2,
             Ingresos_2: editFormData.Ingresos_2,
+            "Correo 2": editFormData["Correo 2"],
+            "Telefono 2": editFormData["Telefono 2"],
+            "Codigo_Postal 2": editFormData["Codigo_Postal 2"],
+            tipo2: editFormData.tipo2,
           }),
           ...(selectedPersona === 3 && {
             Persona_3: editFormData.Persona_3,
             Tipo_Documento_3: editFormData.Tipo_Documento_3,
             Documento_3: editFormData.Documento_3,
             Ingresos_3: editFormData.Ingresos_3,
+            "Correo 3": editFormData["Correo 3"],
+            "Telefono 3": editFormData["Telefono 3"],
+            "Codigo_Postal 3": editFormData["Codigo_Postal 3"],
+            tipo3: editFormData.tipo3,
+          }),
+          ...(selectedPersona === 4 && {
+            Persona_4: editFormData.Persona_4,
+            "Tipo_Documento 4": editFormData["Tipo_Documento 4"],
+            Documento_4: editFormData.Documento_4,
+            "Pais 4": editFormData["Pais 4"],
+            Ingresos_4: editFormData.Ingresos_4,
+            "Correo 4": editFormData["Correo 4"],
+            "Telefono 4": editFormData["Telefono 4"],
+            "Codigo_Postal 4": editFormData["Codigo_Postal 4"],
+            tipo4: editFormData.tipo4,
           }),
         })
         .eq("id", selectedLead.id)
@@ -486,10 +566,10 @@ export default function LeadsPage() {
   }
 
   // Added "Datos Completos" and "Datos Incompletos" cases with appropriate colors.
-  const getStatusColors = (estado: string | null) => {
+  const getStatusColors = (estado: string | null | undefined) => {
     switch (estado) {
       case "Datos Completos":
-      case "Completado":
+      case "Completo":
         return {
           bg: "#dcfce7",
           border: "#22c55e",
@@ -501,7 +581,7 @@ export default function LeadsPage() {
           bg: "#fef3c7",
           border: "#f59e0b",
           text: "#d97706",
-          label: "Datos Incompletos",
+          label: estado,
         }
       case "Validado":
         return {
@@ -543,7 +623,7 @@ export default function LeadsPage() {
           bg: "#f3f4f6",
           border: "#9ca3af",
           text: "#6b7280",
-          label: "Descartado",
+          label: estado,
         }
       default:
         // For any other Estado value, use neutral colors but display the actual value
@@ -556,45 +636,81 @@ export default function LeadsPage() {
     }
   }
 
-  const calculateDataCompleteness = (lead: Lead) => {
-    let totalFields = 0
+  const calculateCompleteness = (lead: Lead) => {
+    let totalFields = 10 // Base fields for main person
     let filledFields = 0
 
-    // Persona 1 fields (8 fields)
-    const persona1Fields = [
+    // Main person fields (10 fields)
+    const mainFields = [
       lead.Nombre,
       lead.Correo,
       lead.Telefono,
+      lead.Documento,
+      lead.Tipo_Documento,
+      lead.Codigo_Postal,
       lead.Pais,
       lead.Ingresos,
-      lead.Codigo_Postal,
-      lead.Tipo_Documento,
-      lead.Documento,
+      lead.Fecha_Entrada,
+      lead.Inmueble,
     ]
-    totalFields += 8
-    filledFields += persona1Fields.filter((field) => field !== null && field !== undefined && field !== "").length
+    filledFields += mainFields.filter((field) => field !== null && field !== undefined && field !== "").length
 
-    // Persona 2 fields (5 fields) - only count if Persona_2 name exists
+    // Persona 2 fields (8 fields) - only count if Persona_2 name exists
     if (lead.Persona_2) {
-      const persona2Fields = [lead.Persona_2, lead.Pais_2, lead.Ingresos_2, lead.Tipo_Documento_2, lead.Documento_2]
-      totalFields += 5
+      const persona2Fields = [
+        lead.Persona_2,
+        lead.Pais_2,
+        lead.Ingresos_2,
+        lead.Tipo_Documento_2,
+        lead.Documento_2,
+        lead["Correo 2"],
+        lead["Telefono 2"],
+        lead["Codigo_Postal 2"],
+      ]
+      totalFields += 8
       filledFields += persona2Fields.filter((field) => field !== null && field !== undefined && field !== "").length
     }
 
-    // Persona 3 fields (4 fields) - only count if Persona_3 name exists
+    // Persona 3 fields (7 fields) - only count if Persona_3 name exists
     if (lead.Persona_3) {
-      const persona3Fields = [lead.Persona_3, lead.Ingresos_3, lead.Tipo_Documento_3, lead.Documento_3]
-      totalFields += 4
+      const persona3Fields = [
+        lead.Persona_3,
+        lead.Ingresos_3,
+        lead.Tipo_Documento_3,
+        lead.Documento_3,
+        lead["Correo 3"],
+        lead["Telefono 3"],
+        lead["Codigo_Postal 3"],
+      ]
+      totalFields += 7
       filledFields += persona3Fields.filter((field) => field !== null && field !== undefined && field !== "").length
     }
 
-    return Math.round((filledFields / totalFields) * 100)
+    // Persona 4 (AVAL) fields (8 fields) - only count if Persona_4 name exists
+    if (lead.Persona_4) {
+      const persona4Fields = [
+        lead.Persona_4,
+        lead["Pais 4"],
+        lead.Ingresos_4,
+        lead["Tipo_Documento 4"],
+        lead.Documento_4,
+        lead["Correo 4"],
+        lead["Telefono 4"],
+        lead["Codigo_Postal 4"],
+      ]
+      totalFields += 8
+      filledFields += persona4Fields.filter((field) => field !== null && field !== undefined && field !== "").length
+    }
+
+    const percentage = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0
+    return { percentage, filledFields, totalFields }
   }
 
   const countPersonas = (lead: Lead) => {
     let count = 1 // Always at least Persona 1
     if (lead.Persona_2) count++
     if (lead.Persona_3) count++
+    if (lead.Persona_4) count++ // Count Persona 4 (Aval)
     return count
   }
 
@@ -743,7 +859,8 @@ export default function LeadsPage() {
     const persona1Income = selectedLead.Ingresos || 0
     const persona2Income = selectedLead.Ingresos_2 || 0
     const persona3Income = selectedLead.Ingresos_3 || 0
-    const totalIncome = persona1Income + persona2Income + persona3Income
+    const persona4Income = selectedLead.Ingresos_4 || 0 // Income from Persona 4 (Aval)
+    const totalIncome = persona1Income + persona2Income + persona3Income + persona4Income
 
     // Calculate required income thresholds
     const minRequiredIncome = actualRent ? actualRent * 2.5 : null // 40% ratio (rent should be max 40% of income)
@@ -760,6 +877,7 @@ export default function LeadsPage() {
       persona1Income,
       persona2Income,
       persona3Income,
+      persona4Income, // Include Persona 4 income
       actualRent,
       minRequiredIncome,
       idealIncome,
@@ -1135,8 +1253,8 @@ export default function LeadsPage() {
                         const isComplete = isLeadComplete(lead)
                         const isDescartado = lead.Estado === "Descartado"
                         const isAceptado = lead.Estado === "Aceptado"
-                        const completionPercentage = calculateDataCompleteness(lead)
-                        const isDataComplete = completionPercentage === 100
+                        const { percentage: completionPercentage, totalFields } = calculateCompleteness(lead)
+                        const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
                         const personaCount = countPersonas(lead)
 
                         // Add checkbox for individual selection
@@ -1155,7 +1273,7 @@ export default function LeadsPage() {
                                 : isAceptado
                                   ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
                                   : isDataComplete
-                                    ? "" // Removed green styling for Completo state, only badge will be green
+                                    ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
                                     : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                             }`}
                             onClick={() => openLeadDetail(lead)}
@@ -1250,7 +1368,10 @@ export default function LeadsPage() {
                                         <Euro className="h-3 w-3" />
                                         <span className="font-medium">
                                           {formatCurrency(
-                                            (lead.Ingresos || 0) + (lead.Ingresos_2 || 0) + (lead.Ingresos_3 || 0),
+                                            (lead.Ingresos || 0) +
+                                              (lead.Ingresos_2 || 0) +
+                                              (lead.Ingresos_3 || 0) +
+                                              (lead.Ingresos_4 || 0), // Include Persona 4 income
                                           )}
                                         </span>
                                       </div>
@@ -1416,8 +1537,8 @@ export default function LeadsPage() {
                       const isComplete = isLeadComplete(lead)
                       const isDescartado = lead.Estado === "Descartado"
                       const isAceptado = lead.Estado === "Aceptado"
-                      const completionPercentage = calculateDataCompleteness(lead)
-                      const isDataComplete = completionPercentage === 100
+                      const { percentage: completionPercentage } = calculateCompleteness(lead)
+                      const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
                       const personaCount = countPersonas(lead)
                       const isSelected = selectedLeadIds.includes(lead.id)
 
@@ -1430,7 +1551,7 @@ export default function LeadsPage() {
                               : isAceptado
                                 ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
                                 : isDataComplete
-                                  ? "" // Removed green styling for Completo state, only badge will be green
+                                  ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
                                   : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                           }`}
                           onClick={() => openLeadDetail(lead)}
@@ -1525,7 +1646,10 @@ export default function LeadsPage() {
                                       <Euro className="h-3 w-3" />
                                       <span className="font-medium">
                                         {formatCurrency(
-                                          (lead.Ingresos || 0) + (lead.Ingresos_2 || 0) + (lead.Ingresos_3 || 0),
+                                          (lead.Ingresos || 0) +
+                                            (lead.Ingresos_2 || 0) +
+                                            (lead.Ingresos_3 || 0) +
+                                            (lead.Ingresos_4 || 0),
                                         )}
                                       </span>
                                     </div>
@@ -1815,34 +1939,11 @@ export default function LeadsPage() {
                       updateLeadStatus={updateLeadStatus}
                       onLeadUpdated={(updatedLead) => setSelectedLead(updatedLead)}
                     />
-                    <button
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        padding: "0.5rem 1rem",
-                        backgroundColor: "transparent",
-                        color: "#6b7280",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "6px",
-                        fontSize: "0.875rem",
-                        fontWeight: "400",
-                        cursor: "pointer",
-                      }}
-                      onClick={async () => {
-                        if (selectedLead) {
-                          await updateLeadStatus(selectedLead.id, "Descartado")
-                          setSelectedLead({ ...selectedLead, Estado: "Descartado" })
-                          toast({
-                            title: "Candidato denegado",
-                            description: "El estado ha sido cambiado a Descartado",
-                          })
-                        }
-                      }}
-                    >
-                      <XCircle size={16} />
-                      Denegar Candidato
-                    </button>
+                    <LeadDenyWrapper
+                      lead={selectedLead}
+                      updateLeadStatus={updateLeadStatus}
+                      onLeadUpdated={(updatedLead) => setSelectedLead(updatedLead)}
+                    />
                   </div>
                 </div>
               </div>
@@ -1853,12 +1954,13 @@ export default function LeadsPage() {
                   {/* Left Column */}
                   <div style={{ flex: "2", display: "flex", flexDirection: "column", gap: "1.25rem", minWidth: 0 }}>
                     {/* Vintage File Folder Tabs */}
-                    {(selectedLead?.Persona_2 || selectedLead?.Persona_3) && (
-                      <div className="flex gap-1 mb-0">
-                        {/* Persona 1 Tab */}
-                        <button
-                          onClick={() => setSelectedPersona(1)}
-                          className={`
+                    {(selectedLead?.Persona_2 || selectedLead?.Persona_3 || selectedLead?.Persona_4) && (
+                      <div className="flex gap-1 mb-0 justify-between items-center">
+                        <div className="flex gap-1">
+                          {/* Persona 1 Tab */}
+                          <button
+                            onClick={() => setSelectedPersona(1)}
+                            className={`
                               relative px-6 py-2.5 text-sm font-medium
                               border border-border rounded-t-lg
                               transition-all duration-200
@@ -1868,18 +1970,18 @@ export default function LeadsPage() {
                                   : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                               }
                             `}
-                        >
-                          <span className="tracking-wide">{selectedLead?.Nombre || "Persona 1"}</span>
-                          {selectedPersona === 1 && (
-                            <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
-                          )}
-                        </button>
+                          >
+                            <span className="tracking-wide">{selectedLead?.Nombre || "Persona 1"}</span>
+                            {selectedPersona === 1 && (
+                              <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
+                            )}
+                          </button>
 
-                        {/* Persona 2 Tab */}
-                        {selectedLead?.Persona_2 && (
-                          <button
-                            onClick={() => setSelectedPersona(2)}
-                            className={`
+                          {/* Persona 2 Tab */}
+                          {selectedLead?.Persona_2 && (
+                            <button
+                              onClick={() => setSelectedPersona(2)}
+                              className={`
                                 relative px-6 py-2.5 text-sm font-medium
                                 border border-border rounded-t-lg
                                 transition-all duration-200
@@ -1889,19 +1991,19 @@ export default function LeadsPage() {
                                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                                 }
                               `}
-                          >
-                            <span className="tracking-wide">{selectedLead.Persona_2}</span>
-                            {selectedPersona === 2 && (
-                              <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
-                            )}
-                          </button>
-                        )}
+                            >
+                              <span className="tracking-wide">{selectedLead.Persona_2}</span>
+                              {selectedPersona === 2 && (
+                                <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
+                              )}
+                            </button>
+                          )}
 
-                        {/* Persona 3 Tab */}
-                        {selectedLead?.Persona_3 && (
-                          <button
-                            onClick={() => setSelectedPersona(3)}
-                            className={`
+                          {/* Persona 3 Tab */}
+                          {selectedLead?.Persona_3 && (
+                            <button
+                              onClick={() => setSelectedPersona(3)}
+                              className={`
                                 relative px-6 py-2.5 text-sm font-medium
                                 border border-border rounded-t-lg
                                 transition-all duration-200
@@ -1911,10 +2013,33 @@ export default function LeadsPage() {
                                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                                 }
                               `}
+                            >
+                              <span className="tracking-wide">{selectedLead.Persona_3}</span>
+                              {selectedPersona === 3 && (
+                                <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Persona 4 (AVAL) Tab - Aligned to the right with different style */}
+                        {selectedLead?.Persona_4 && (
+                          <button
+                            onClick={() => setSelectedPersona(4)}
+                            className={`
+                              relative px-6 py-2.5 text-sm font-medium
+                              border-2 rounded-t-lg
+                              transition-all duration-200
+                              ${
+                                selectedPersona === 4
+                                  ? "bg-amber-50 text-amber-900 border-amber-500 border-b-transparent z-10 -mb-px shadow-md"
+                                  : "bg-amber-100/50 text-amber-700 border-amber-300 hover:bg-amber-100 hover:border-amber-400"
+                              }
+                            `}
                           >
-                            <span className="tracking-wide">{selectedLead.Persona_3}</span>
-                            {selectedPersona === 3 && (
-                              <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
+                            <span className="tracking-wide font-semibold">🛡️ AVAL: {selectedLead.Persona_4}</span>
+                            {selectedPersona === 4 && (
+                              <div className="absolute bottom-0 left-0 right-0 h-px bg-amber-50" />
                             )}
                           </button>
                         )}
@@ -1925,7 +2050,7 @@ export default function LeadsPage() {
                       <div
                         className={`
                             border border-border bg-background p-5 shadow-sm
-                            ${selectedLead?.Persona_2 || selectedLead?.Persona_3 ? "rounded-tr-lg rounded-b-lg" : "rounded-lg"}
+                            ${selectedLead?.Persona_2 || selectedLead?.Persona_3 || selectedLead?.Persona_4 ? "rounded-tr-lg rounded-b-lg" : "rounded-lg"}
                           `}
                       >
                         <div className="flex justify-between items-center mb-5">
@@ -2319,7 +2444,6 @@ export default function LeadsPage() {
                       </div>
                     )}
 
-                    {/* Persona 2 Info */}
                     {selectedPersona === 2 && selectedLead?.Persona_2 && (
                       <div
                         style={{
@@ -2403,6 +2527,7 @@ export default function LeadsPage() {
                           )}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          {/* Row 1: Nombre and Correo */}
                           <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
@@ -2437,24 +2562,24 @@ export default function LeadsPage() {
                                   marginBottom: "0.375rem",
                                 }}
                               >
-                                Tipo Documento Persona 2
+                                Correo Persona 2
                               </div>
                               {isEditingPersonalInfo ? (
                                 <Input
-                                  value={editFormData.Tipo_Documento_2 || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({ ...editFormData, Tipo_Documento_2: e.target.value })
-                                  }
-                                  placeholder="DNI, NIE, Pasaporte"
+                                  value={editFormData["Correo 2"] || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, "Correo 2": e.target.value })}
+                                  placeholder="email@ejemplo.com"
                                   className="h-9 text-sm"
                                 />
                               ) : (
                                 <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Tipo_Documento_2 || "No especificado"}
+                                  {selectedLead["Correo 2"] || "No especificado"}
                                 </div>
                               )}
                             </div>
                           </div>
+
+                          {/* Row 2: Telefono and Pais */}
                           <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
@@ -2465,18 +2590,18 @@ export default function LeadsPage() {
                                   marginBottom: "0.375rem",
                                 }}
                               >
-                                Documento Persona 2
+                                Teléfono Persona 2
                               </div>
                               {isEditingPersonalInfo ? (
                                 <Input
-                                  value={editFormData.Documento_2 || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_2: e.target.value })}
-                                  placeholder="12345678A"
+                                  value={editFormData["Telefono 2"] || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, "Telefono 2": e.target.value })}
+                                  placeholder="+34 600 000 000"
                                   className="h-9 text-sm"
                                 />
                               ) : (
                                 <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Documento_2 || "No especificado"}
+                                  {selectedLead["Telefono 2"] || "No especificado"}
                                 </div>
                               )}
                             </div>
@@ -2505,41 +2630,436 @@ export default function LeadsPage() {
                               )}
                             </div>
                           </div>
-                          <div style={{ flex: "1", minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontSize: "0.75rem",
-                                color: "#6b7280",
-                                fontWeight: "500",
-                                marginBottom: "0.375rem",
-                              }}
-                            >
-                              Ingresos Persona 2 (€)
-                            </div>
-                            {isEditingPersonalInfo ? (
-                              <Input
-                                type="number"
-                                value={editFormData.Ingresos_2 || ""}
-                                onChange={(e) =>
-                                  setEditFormData({
-                                    ...editFormData,
-                                    Ingresos_2: Number.parseFloat(e.target.value) || 0,
-                                  })
-                                }
-                                placeholder="2000"
-                                className="h-9 text-sm"
-                              />
-                            ) : (
-                              <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                {selectedLead.Ingresos_2 ? formatCurrency(selectedLead.Ingresos_2) : "No especificado"}
+
+                          {/* Row 3: Ingresos and Codigo Postal */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Ingresos Persona 2 (€)
                               </div>
-                            )}
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  type="number"
+                                  value={editFormData.Ingresos_2 || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({
+                                      ...editFormData,
+                                      Ingresos_2: Number.parseFloat(e.target.value) || 0,
+                                    })
+                                  }
+                                  placeholder="2000"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Ingresos_2
+                                    ? formatCurrency(selectedLead.Ingresos_2)
+                                    : "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Código Postal Persona 2
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData["Codigo_Postal 2"] || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, "Codigo_Postal 2": e.target.value })
+                                  }
+                                  placeholder="28001"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead["Codigo_Postal 2"] || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Row 4: Tipo Documento and Documento */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Tipo Documento Persona 2
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Tipo_Documento_2 || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, Tipo_Documento_2: e.target.value })
+                                  }
+                                  placeholder="DNI, NIE, Pasaporte"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Tipo_Documento_2 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Documento Persona 2
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Documento_2 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_2: e.target.value })}
+                                  placeholder="12345678A"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Documento_2 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Persona 3 Info */}
+                    {selectedPersona === 4 && selectedLead?.Persona_4 && (
+                      <div
+                        style={{
+                          border: "2px solid #f59e0b",
+                          borderRadius: "8px",
+                          padding: "1.25rem",
+                          background: "linear-gradient(to bottom, #fffbeb, #fef3c7)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "1.25rem",
+                          }}
+                        >
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                            <h2 style={{ fontSize: "1.125rem", fontWeight: "600", margin: 0, color: "#92400e" }}>
+                              🛡️ Información del AVAL
+                            </h2>
+                            <p style={{ fontSize: "0.75rem", color: "#78350f", margin: 0 }}>
+                              Datos del avalista o garante
+                            </p>
+                          </div>
+                          {!isEditingPersonalInfo ? (
+                            <button
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                background: "none",
+                                border: "none",
+                                fontSize: "0.875rem",
+                                color: "#92400e",
+                                cursor: "pointer",
+                              }}
+                              onClick={() => setIsEditingPersonalInfo(true)}
+                            >
+                              <Edit size={14} />
+                              Editar
+                            </button>
+                          ) : (
+                            <div style={{ display: "flex", gap: "0.5rem" }}>
+                              <button
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: "0.375rem 0.75rem",
+                                  backgroundColor: "#10b981",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  fontSize: "0.875rem",
+                                  cursor: "pointer",
+                                  fontWeight: "500",
+                                }}
+                                onClick={savePersonalInfo}
+                              >
+                                <Check size={14} />
+                                Guardar
+                              </button>
+                              <button
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  padding: "0.375rem 0.75rem",
+                                  backgroundColor: "#ef4444",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  fontSize: "0.875rem",
+                                  cursor: "pointer",
+                                  fontWeight: "500",
+                                }}
+                                onClick={cancelEdit}
+                              >
+                                <X size={14} />
+                                Cancelar
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          {/* Row 1: Nombre and Correo */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#92400e",
+                                  fontWeight: "600",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Nombre del AVAL
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Persona_4 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Persona_4: e.target.value })}
+                                  placeholder="Nombre del avalista"
+                                  className="h-9 text-sm bg-white"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "600", color: "#78350f" }}>
+                                  {selectedLead.Persona_4 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#92400e",
+                                  fontWeight: "600",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Correo del AVAL
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData["Correo 4"] || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, "Correo 4": e.target.value })}
+                                  placeholder="email@ejemplo.com"
+                                  className="h-9 text-sm bg-white"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
+                                  {selectedLead["Correo 4"] || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Row 2: Telefono and Pais */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#92400e",
+                                  fontWeight: "600",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Teléfono del AVAL
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData["Telefono 4"] || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, "Telefono 4": e.target.value })}
+                                  placeholder="+34 600 000 000"
+                                  className="h-9 text-sm bg-white"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
+                                  {selectedLead["Telefono 4"] || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#92400e",
+                                  fontWeight: "600",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                País del AVAL
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData["Pais 4"] || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, "Pais 4": e.target.value })}
+                                  placeholder="España"
+                                  className="h-9 text-sm bg-white"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
+                                  {selectedLead["Pais 4"] || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Row 3: Ingresos and Codigo Postal */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#92400e",
+                                  fontWeight: "600",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Ingresos del AVAL (€)
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  type="number"
+                                  value={editFormData.Ingresos_4 || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({
+                                      ...editFormData,
+                                      Ingresos_4: Number.parseFloat(e.target.value) || 0,
+                                    })
+                                  }
+                                  placeholder="2000"
+                                  className="h-9 text-sm bg-white"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
+                                  {selectedLead.Ingresos_4
+                                    ? formatCurrency(selectedLead.Ingresos_4)
+                                    : "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#92400e",
+                                  fontWeight: "600",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Código Postal del AVAL
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData["Codigo_Postal 4"] || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, "Codigo_Postal 4": e.target.value })
+                                  }
+                                  placeholder="28001"
+                                  className="h-9 text-sm bg-white"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
+                                  {selectedLead["Codigo_Postal 4"] || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Row 4: Tipo Documento and Documento */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#92400e",
+                                  fontWeight: "600",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Tipo Documento del AVAL
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData["Tipo_Documento 4"] || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, "Tipo_Documento 4": e.target.value })
+                                  }
+                                  placeholder="DNI, NIE, Pasaporte"
+                                  className="h-9 text-sm bg-white"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
+                                  {selectedLead["Tipo_Documento 4"] || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#92400e",
+                                  fontWeight: "600",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Documento del AVAL
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Documento_4 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_4: e.target.value })}
+                                  placeholder="12345678A"
+                                  className="h-9 text-sm bg-white"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
+                                  {selectedLead.Documento_4 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Add Persona 3 section */}
                     {selectedPersona === 3 && selectedLead?.Persona_3 && (
                       <div
                         style={{
@@ -2623,6 +3143,7 @@ export default function LeadsPage() {
                           )}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          {/* Row 1: Nombre and Correo */}
                           <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
@@ -2657,24 +3178,24 @@ export default function LeadsPage() {
                                   marginBottom: "0.375rem",
                                 }}
                               >
-                                Tipo Documento Persona 3
+                                Correo Persona 3
                               </div>
                               {isEditingPersonalInfo ? (
                                 <Input
-                                  value={editFormData.Tipo_Documento_3 || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({ ...editFormData, Tipo_Documento_3: e.target.value })
-                                  }
-                                  placeholder="DNI, NIE, Pasaporte"
+                                  value={editFormData["Correo 3"] || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, "Correo 3": e.target.value })}
+                                  placeholder="email@ejemplo.com"
                                   className="h-9 text-sm"
                                 />
                               ) : (
                                 <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Tipo_Documento_3 || "No especificado"}
+                                  {selectedLead["Correo 3"] || "No especificado"}
                                 </div>
                               )}
                             </div>
                           </div>
+
+                          {/* Row 2: Telefono and Pais */}
                           <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
@@ -2685,21 +3206,49 @@ export default function LeadsPage() {
                                   marginBottom: "0.375rem",
                                 }}
                               >
-                                Documento Persona 3
+                                Teléfono Persona 3
                               </div>
                               {isEditingPersonalInfo ? (
                                 <Input
-                                  value={editFormData.Documento_3 || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_3: e.target.value })}
-                                  placeholder="12345678A"
+                                  value={editFormData["Telefono 3"] || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, "Telefono 3": e.target.value })}
+                                  placeholder="+34 600 000 000"
                                   className="h-9 text-sm"
                                 />
                               ) : (
                                 <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Documento_3 || "No especificado"}
+                                  {selectedLead["Telefono 3"] || "No especificado"}
                                 </div>
                               )}
                             </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                País Persona 3
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData["Pais 3"] || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, "Pais 3": e.target.value })}
+                                  placeholder="España"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead["Pais 3"] || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Row 3: Ingresos and Codigo Postal */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
                                 style={{
@@ -2729,6 +3278,86 @@ export default function LeadsPage() {
                                   {selectedLead.Ingresos_3
                                     ? formatCurrency(selectedLead.Ingresos_3)
                                     : "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Código Postal Persona 3
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData["Codigo_Postal 3"] || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, "Codigo_Postal 3": e.target.value })
+                                  }
+                                  placeholder="28001"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead["Codigo_Postal 3"] || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Row 4: Tipo Documento and Documento */}
+                          <div style={{ display: "flex", gap: "1.5rem" }}>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Tipo Documento Persona 3
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Tipo_Documento_3 || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, Tipo_Documento_3: e.target.value })
+                                  }
+                                  placeholder="DNI, NIE, Pasaporte"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Tipo_Documento_3 || "No especificado"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1", minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  fontWeight: "500",
+                                  marginBottom: "0.375rem",
+                                }}
+                              >
+                                Documento Persona 3
+                              </div>
+                              {isEditingPersonalInfo ? (
+                                <Input
+                                  value={editFormData.Documento_3 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_3: e.target.value })}
+                                  placeholder="12345678A"
+                                  className="h-9 text-sm"
+                                />
+                              ) : (
+                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                  {selectedLead.Documento_3 || "No especificado"}
                                 </div>
                               )}
                             </div>
@@ -3447,6 +4076,14 @@ export default function LeadsPage() {
                       <span className="text-xs text-muted-foreground">{selectedLead.Persona_3 || "Persona 3"}:</span>
                       <span className="text-xs font-medium text-green-600">
                         {formatCurrency(avalCalculation.persona3Income)}
+                      </span>
+                    </div>
+                  )}
+                  {avalCalculation.persona4Income > 0 && (
+                    <div className="flex justify-between pl-2">
+                      <span className="text-xs text-muted-foreground">{selectedLead.Persona_4 || "Avalista"}:</span>
+                      <span className="text-xs font-medium text-green-600">
+                        {formatCurrency(avalCalculation.persona4Income)}
                       </span>
                     </div>
                   )}
