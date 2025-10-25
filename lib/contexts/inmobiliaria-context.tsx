@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 interface InmobiliariaContextType {
   inmobiliariaId: number | null
   inmobiliariaNombre: string | null
+  isAdmin: boolean
   loading: boolean
   error: string | null
   refreshProfile: () => Promise<void>
@@ -15,6 +16,7 @@ interface InmobiliariaContextType {
 const InmobiliariaContext = createContext<InmobiliariaContextType>({
   inmobiliariaId: null,
   inmobiliariaNombre: null,
+  isAdmin: false,
   loading: true,
   error: null,
   refreshProfile: async () => {},
@@ -23,6 +25,7 @@ const InmobiliariaContext = createContext<InmobiliariaContextType>({
 export function InmobiliariaProvider({ children }: { children: React.ReactNode }) {
   const [inmobiliariaId, setInmobiliariaId] = useState<number | null>(null)
   const [inmobiliariaNombre, setInmobiliariaNombre] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -62,6 +65,7 @@ export function InmobiliariaProvider({ children }: { children: React.ReactNode }
         console.log("[v0] No user authenticated")
         setInmobiliariaId(null)
         setInmobiliariaNombre(null)
+        setIsAdmin(false)
         setLoading(false)
         return
       }
@@ -70,7 +74,7 @@ export function InmobiliariaProvider({ children }: { children: React.ReactNode }
 
       const { data: perfil, error: perfilError } = await supabase
         .from("Perfiles")
-        .select("inmobiliaria")
+        .select("inmobiliaria, is_admin")
         .eq("usuario", user.email)
         .maybeSingle()
 
@@ -79,6 +83,7 @@ export function InmobiliariaProvider({ children }: { children: React.ReactNode }
       if (perfilError) {
         console.error("[v0] Error fetching profile:", perfilError.message)
         setError(`Error al cargar perfil: ${perfilError.message}`)
+        setIsAdmin(false)
         setInmobiliariaId(null)
         setInmobiliariaNombre(null)
         setLoading(false)
@@ -89,6 +94,7 @@ export function InmobiliariaProvider({ children }: { children: React.ReactNode }
         console.warn("[v0] No profile found for user:", user.email)
         setInmobiliariaId(null)
         setInmobiliariaNombre(null)
+        setIsAdmin(false)
         setLoading(false)
         return
       }
@@ -111,16 +117,19 @@ export function InmobiliariaProvider({ children }: { children: React.ReactNode }
       const numericId = Number(perfil.inmobiliaria)
       setInmobiliariaId(numericId)
       setInmobiliariaNombre(inmobiliaria?.Nombre || null)
+      setIsAdmin(perfil.is_admin || false)
 
       console.log("[v0] Profile loaded successfully:", {
         inmobiliariaId: numericId,
         inmobiliariaNombre: inmobiliaria?.Nombre,
+        isAdmin: perfil.is_admin || false,
       })
 
       setLoading(false)
     } catch (error: any) {
       console.error("[v0] Error in fetchProfile:", error)
       setError(error.message || "Error desconocido al cargar el perfil")
+      setIsAdmin(false)
       setLoading(false)
     } finally {
       isFetchingRef.current = false
@@ -182,6 +191,7 @@ export function InmobiliariaProvider({ children }: { children: React.ReactNode }
       value={{
         inmobiliariaId,
         inmobiliariaNombre,
+        isAdmin,
         loading,
         error,
         refreshProfile: fetchProfile,
