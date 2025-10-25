@@ -1,5 +1,3 @@
-"use server"
-
 /**
  * Debug logging utility that only logs in development environment
  * @param message - The message to log

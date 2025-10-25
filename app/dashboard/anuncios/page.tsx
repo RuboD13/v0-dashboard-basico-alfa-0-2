@@ -7,14 +7,6 @@ import { useInmobiliaria } from "@/lib/contexts/inmobiliaria-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   CheckCircle,
@@ -30,6 +22,8 @@ import {
   Target,
   Eye,
   Search,
+  X,
+  UserCheck,
 } from "lucide-react"
 import { formatPlanValue } from "@/lib/plan-data"
 
@@ -1574,8 +1568,9 @@ export default function AnunciosPage() {
 
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>
-                  {t.resultsShowing} <strong className="text-foreground">{filteredAnuncios.length}</strong> {t.resultsOf}{" "}
-                  <strong className="text-foreground">{anunciosCards.length}</strong> {t.resultsAnnouncements}
+                  {t.resultsShowing} <strong className="text-foreground">{filteredAnuncios.length}</strong>{" "}
+                  {t.resultsOf} <strong className="text-foreground">{anunciosCards.length}</strong>{" "}
+                  {t.resultsAnnouncements}
                   {filterEstado === "archivado" && ` ${t.resultsArchived}`}
                 </span>
                 {(normalizedSearchQuery || filterPortal !== "all" || filterEstado !== "all") && (
@@ -1654,7 +1649,11 @@ export default function AnunciosPage() {
                               className="h-7 text-xs px-2 bg-transparent"
                               onClick={() => handleOpenScheduleDialog(anuncio.id)}
                               disabled={anuncio.estado === "archivado" || !SCHEDULED_ACTIVATION_ENABLED} // Disable if archived or feature flag off
-                              title={!SCHEDULED_ACTIVATION_ENABLED ? t.dialogScheduleFeatureDisabled : t.ariaScheduleActivation}
+                              title={
+                                !SCHEDULED_ACTIVATION_ENABLED
+                                  ? t.dialogScheduleFeatureDisabled
+                                  : t.ariaScheduleActivation
+                              }
                               aria-label={t.ariaScheduleActivation}
                             >
                               <Calendar className="h-3 w-3 mr-1" />
@@ -1847,70 +1846,74 @@ export default function AnunciosPage() {
                       </div>
                     </CardContent>
                   </Card>
-
-      {/* Expanded panel for leads with complete data */}
-{expandedLeadsAnuncio === anuncio.id && (
-  <Card className="bg-muted/30 border-l-4 border-l-green-500/40">
-    <CardHeader className="pb-2">
-      <div className="flex items-center justify-between">
-        <CardTitle className="text-sm">
-          Leads con Datos Completos - {anuncio.referencia}
-        </CardTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setExpandedLeadsAnuncio(null);
-            setCompletosLeads([]);
-          }}
-          aria-label={t["aria.closeLeadsPanel"]}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    </CardHeader>
-    <CardContent>
-      {loadingCompletos ? (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : completosLeads.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          No hay leads con datos completos para este anuncio
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {completosLeads.map((lead) => (
-            <div
-              key={lead.id}
-              className="flex items-center justify-between p-3 bg-background rounded-lg border hover:border-primary/50 transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{lead.Nombre}</p>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-xs text-muted-foreground">{lead.Correo}</p>
-                  {lead.Telefono && (
-                    <p className="text-xs text-muted-foreground">{lead.Telefono}</p>
-                  )}
-                </div>
-                {lead.Ingresos && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Ingresos: {lead.Ingresos}€
-                  </p>
-                )}
+                ))}
               </div>
-              <Button
-                size="sm"
-                onClick={() => handleProgramarVisita(lead.id)}
-                className="ml-2"
-              >
-                <UserCheck className="h-3.5 w-3.5 mr-1" />
-                Programar visita
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-)}
+            )}
+
+            {expandedLeadsAnuncio &&
+              (() => {
+                const anuncio = filteredAnuncios.find((a) => a.id === expandedLeadsAnuncio)
+                if (!anuncio) return null
+
+                return (
+                  <Card className="bg-muted/30 border-l-4 border-l-green-500/40 mt-6">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm">Leads con Datos Completos - {anuncio.referencia}</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setExpandedLeadsAnuncio(null)
+                            setCompletosLeads([])
+                          }}
+                          aria-label={t["aria.closeLeadsPanel"]}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingCompletos ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                      ) : completosLeads.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No hay leads con datos completos para este anuncio
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {completosLeads.map((lead) => (
+                            <div
+                              key={lead.id}
+                              className="flex items-center justify-between p-3 bg-background rounded-lg border hover:border-primary/50 transition-colors"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{lead.Nombre}</p>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <p className="text-xs text-muted-foreground">{lead.Correo}</p>
+                                  {lead.Telefono && <p className="text-xs text-muted-foreground">{lead.Telefono}</p>}
+                                </div>
+                                {lead.Ingresos && (
+                                  <p className="text-xs text-muted-foreground mt-1">Ingresos: {lead.Ingresos}€</p>
+                                )}
+                              </div>
+                              <Button size="sm" onClick={() => handleProgramarVisita(lead.id)} className="ml-2">
+                                <UserCheck className="h-3.5 w-3.5 mr-1" />
+                                Programar visita
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })()}
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
+  )
+}

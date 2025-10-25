@@ -31,7 +31,7 @@ This project requires the following environment variables to be configured:
 The application uses Google Maps to display property locations. You need to configure the Google Maps API key:
 
 \`\`\`bash
-NEXT_PUBLIC_GOOGLE_MAPS_KEY=your_google_maps_api_key_here
+GOOGLE_MAPS_KEY=your_google_maps_api_key_here
 \`\`\`
 
 **How to get a Google Maps API Key:**
@@ -44,7 +44,9 @@ NEXT_PUBLIC_GOOGLE_MAPS_KEY=your_google_maps_api_key_here
 
 **Security Best Practices:**
 
-⚠️ **Important:** The `NEXT_PUBLIC_` prefix makes this variable accessible in the browser, which is required for Google Maps Embed API to work. To protect your API key from abuse:
+✅ **Secure Implementation:** This application uses a Server Action to fetch the Google Maps API key, keeping it secure on the server side and preventing direct exposure in client-side code.
+
+**Additional Security Measures:**
 
 1. **Restrict by HTTP referrer (website)** in Google Cloud Console:
    - Go to your API key settings

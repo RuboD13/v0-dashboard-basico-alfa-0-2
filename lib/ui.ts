@@ -1,5 +1,3 @@
-"use server"
-
 import { toast } from "@/hooks/use-toast"
 
 /**
