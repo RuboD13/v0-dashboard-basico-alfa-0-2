@@ -1136,7 +1136,7 @@ export default function LeadsPage() {
                         const isDescartado = lead.Estado === "Descartado"
                         const isAceptado = lead.Estado === "Aceptado"
                         const completionPercentage = calculateDataCompleteness(lead)
-                        const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
+                        const isDataComplete = completionPercentage === 100
                         const personaCount = countPersonas(lead)
 
                         // Add checkbox for individual selection
@@ -1155,7 +1155,7 @@ export default function LeadsPage() {
                                 : isAceptado
                                   ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
                                   : isDataComplete
-                                    ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
+                                    ? "" // Removed green styling for Completo state, only badge will be green
                                     : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                             }`}
                             onClick={() => openLeadDetail(lead)}
@@ -1417,7 +1417,7 @@ export default function LeadsPage() {
                       const isDescartado = lead.Estado === "Descartado"
                       const isAceptado = lead.Estado === "Aceptado"
                       const completionPercentage = calculateDataCompleteness(lead)
-                      const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
+                      const isDataComplete = completionPercentage === 100
                       const personaCount = countPersonas(lead)
                       const isSelected = selectedLeadIds.includes(lead.id)
 
@@ -1430,7 +1430,7 @@ export default function LeadsPage() {
                               : isAceptado
                                 ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
                                 : isDataComplete
-                                  ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
+                                  ? "" // Removed green styling for Completo state, only badge will be green
                                   : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                           }`}
                           onClick={() => openLeadDetail(lead)}

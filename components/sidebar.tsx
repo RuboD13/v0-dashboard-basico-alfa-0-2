@@ -50,7 +50,7 @@ export default function Sidebar({ user }: SidebarProps) {
       {/* Header */}
       <div className="p-6 border-b border-border">
         <h1 className="text-lg font-semibold text-foreground">Dashboard Básico</h1>
-        <p className="text-sm text-muted-foreground">Alfa 0.3-V.142</p>
+        <p className="text-sm text-muted-foreground">Alfa 0.2-V.86</p>
       </div>
 
       {/* Navigation */}
