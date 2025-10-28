@@ -2387,80 +2387,61 @@ export default function AnunciosPage() {
                     </div>
                   </div>
 
-                  {/* CHANGE START */}
                   <div className="space-y-3">
                     <h4 className="font-semibold">Preparados para Fase de Visita</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {(() => {
-                        const aceptadosCount =
-                          selectedAnuncioForStats.allLeads?.filter((lead) => lead.Estado === "Aceptado").length || 0
-                        const visitaPropuestaCount =
-                          selectedAnuncioForStats.allLeads?.filter((lead) => lead.Estado === "Visita Propuesta")
-                            .length || 0
-                        const visitaCompletadaCount =
-                          selectedAnuncioForStats.allLeads?.filter((lead) => lead.Estado === "Visita Completada")
-                            .length || 0
-                        const descartadoCount =
-                          selectedAnuncioForStats.allLeads?.filter((lead) => lead.Estado === "Descartado").length || 0
+                      {/* Candidatos Aprobados */}
+                      <button
+                        onClick={() => handleStatusCardClick("Aceptado")}
+                        className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
+                          filteredLeadsByStatus === "Aceptado"
+                            ? "bg-emerald-100 border-emerald-500"
+                            : "bg-emerald-50 border-emerald-200"
+                        }`}
+                      >
+                        <div className="text-xl font-bold text-emerald-600">{selectedAnuncioForStats.leadsTotales}</div>
+                        <div className="text-xs text-emerald-800">Candidatos Aprobados</div>
+                      </button>
 
-                        return (
-                          <>
-                            {/* Candidatos Aprobados */}
-                            <button
-                              onClick={() => handleStatusCardClick("Aceptado")}
-                              className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
-                                filteredLeadsByStatus === "Aceptado"
-                                  ? "bg-emerald-100 border-emerald-500"
-                                  : "bg-emerald-50 border-emerald-200"
-                              }`}
-                            >
-                              <div className="text-xl font-bold text-emerald-600">{aceptadosCount}</div>
-                              <div className="text-xs text-emerald-800">Candidatos Aprobados</div>
-                            </button>
+                      {/* Visita Propuesta */}
+                      <button
+                        onClick={() => handleStatusCardClick("Visita Propuesta")}
+                        className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
+                          filteredLeadsByStatus === "Visita Propuesta"
+                            ? "bg-blue-100 border-blue-500"
+                            : "bg-blue-50 border-blue-200"
+                        }`}
+                      >
+                        <div className="text-xl font-bold text-blue-600">{selectedAnuncioForStats.leadsTotales}</div>
+                        <div className="text-xs text-blue-800">Visita Propuesta</div>
+                      </button>
 
-                            {/* Visita Propuesta */}
-                            <button
-                              onClick={() => handleStatusCardClick("Visita Propuesta")}
-                              className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
-                                filteredLeadsByStatus === "Visita Propuesta"
-                                  ? "bg-blue-100 border-blue-500"
-                                  : "bg-blue-50 border-blue-200"
-                              }`}
-                            >
-                              <div className="text-xl font-bold text-blue-600">{visitaPropuestaCount}</div>
-                              <div className="text-xs text-blue-800">Visita Propuesta</div>
-                            </button>
+                      {/* Visita Completada */}
+                      <button
+                        onClick={() => handleStatusCardClick("Visita Completada")}
+                        className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
+                          filteredLeadsByStatus === "Visita Completada"
+                            ? "bg-purple-100 border-purple-500"
+                            : "bg-purple-50 border-purple-200"
+                        }`}
+                      >
+                        <div className="text-xl font-bold text-purple-600">{selectedAnuncioForStats.leadsTotales}</div>
+                        <div className="text-xs text-purple-800">Visita Completada</div>
+                      </button>
 
-                            {/* Visita Completada */}
-                            <button
-                              onClick={() => handleStatusCardClick("Visita Completada")}
-                              className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
-                                filteredLeadsByStatus === "Visita Completada"
-                                  ? "bg-purple-100 border-purple-500"
-                                  : "bg-purple-50 border-purple-200"
-                              }`}
-                            >
-                              <div className="text-xl font-bold text-purple-600">{visitaCompletadaCount}</div>
-                              <div className="text-xs text-purple-800">Visita Completada</div>
-                            </button>
-
-                            {/* Descartados */}
-                            <button
-                              onClick={() => handleStatusCardClick("Descartado")}
-                              className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
-                                filteredLeadsByStatus === "Descartado"
-                                  ? "bg-gray-100 border-gray-500"
-                                  : "bg-gray-50 border-gray-200"
-                              }`}
-                            >
-                              <div className="text-lg font-bold text-gray-600">{descartadoCount}</div>
-                              <div className="text-xs text-gray-800">Descartados</div>
-                            </button>
-                          </>
-                        )
-                      })()}
+                      {/* Descartados */}
+                      <button
+                        onClick={() => handleStatusCardClick("Descartado")}
+                        className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
+                          filteredLeadsByStatus === "Descartado"
+                            ? "bg-gray-100 border-gray-500"
+                            : "bg-gray-50 border-gray-200"
+                        }`}
+                      >
+                        <div className="text-lg font-bold text-gray-600">{selectedAnuncioForStats.leadsTotales}</div>
+                        <div className="text-xs text-gray-800">Descartados</div>
+                      </button>
                     </div>
-                    {/* CHANGE END */}
 
                     {filteredLeadsByStatus && (
                       <div className="mt-4 p-4 bg-muted rounded-lg">
