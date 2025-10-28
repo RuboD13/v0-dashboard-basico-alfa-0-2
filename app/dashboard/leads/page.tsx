@@ -1885,8 +1885,8 @@ export default function LeadsPage() {
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+      </Main>
       {/* Lead Detail Dialog */}
       {selectedLead && (
         <>
