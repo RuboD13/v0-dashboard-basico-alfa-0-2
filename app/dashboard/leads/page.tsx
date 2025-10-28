@@ -985,7 +985,7 @@ export default function LeadsPage() {
         </div>
       </div>
     )
-  
+  }
 
   return (
     <div className="flex h-screen bg-background">
