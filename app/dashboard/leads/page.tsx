@@ -39,7 +39,6 @@ import {
   MoreVertical,
   Copy,
   Check,
-  AlertCircle,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast" // Added useToast hook
 import React from "react" // Imported React
@@ -172,10 +171,6 @@ export default function LeadsPage() {
   const [isBulkSelectionMode, setIsBulkSelectionMode] = useState(false)
   const [bulkConfirmationOpen, setBulkConfirmationOpen] = useState(false)
   const [pendingBulkStatus, setPendingBulkStatus] = useState<string | null>(null)
-
-  const [isFirstDescartadoConfirmOpen, setIsFirstDescartadoConfirmOpen] = useState(false)
-  const [isSecondDescartadoConfirmOpen, setIsSecondDescartadoConfirmOpen] = useState(false)
-  const [pendingDescartadoLead, setPendingDescartadoLead] = useState<{ leadId: string; leadEmail: string } | null>(null)
 
   useEffect(() => {
     if (!inmobiliariaLoading && inmobiliariaId !== null) {
@@ -461,13 +456,6 @@ export default function LeadsPage() {
   }
 
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
-    if (newStatus === "Descartado") {
-      const lead = leads.find((l) => l.id === leadId)
-      setPendingDescartadoLead({ leadId, leadEmail: lead?.Correo || "sin correo" })
-      setIsFirstDescartadoConfirmOpen(true)
-      return
-    }
-
     try {
       const { error } = await supabase.from("Clientes").update({ Estado: newStatus }).eq("id", leadId)
 
@@ -475,11 +463,6 @@ export default function LeadsPage() {
 
       // Update local state
       setLeads(leads.map((lead) => (lead.id === leadId ? { ...lead, Estado: newStatus } : lead)))
-
-      // Update selectedLead if it's the one being changed
-      if (selectedLead && selectedLead.id === leadId) {
-        setSelectedLead({ ...selectedLead, Estado: newStatus })
-      }
 
       console.log("[v0] Lead status updated successfully")
     } catch (err) {
@@ -855,51 +838,6 @@ export default function LeadsPage() {
     }
   }
 
-  const handleFirstDescartadoConfirm = () => {
-    setIsFirstDescartadoConfirmOpen(false)
-    setIsSecondDescartadoConfirmOpen(true)
-  }
-
-  const executeDescartadoStatusChange = async () => {
-    if (!pendingDescartadoLead) return
-
-    try {
-      const { error } = await supabase
-        .from("Clientes")
-        .update({ Estado: "Descartado" })
-        .eq("id", pendingDescartadoLead.leadId)
-
-      if (error) throw error
-
-      // Update local state
-      setLeads(
-        leads.map((lead) => (lead.id === pendingDescartadoLead.leadId ? { ...lead, Estado: "Descartado" } : lead)),
-      )
-
-      // Update selectedLead if it's the one being changed
-      if (selectedLead && selectedLead.id === pendingDescartadoLead.leadId) {
-        setSelectedLead({ ...selectedLead, Estado: "Descartado" })
-      }
-
-      toast({
-        title: "Estado actualizado",
-        description: "El lead ha sido marcado como Descartado y se enviará un correo de notificación.",
-      })
-
-      console.log("[v0] Lead status updated to Descartado successfully")
-    } catch (err) {
-      console.error("[v0] Error updating lead status to Descartado:", err)
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado del lead",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSecondDescartadoConfirmOpen(false)
-      setPendingDescartadoLead(null)
-    }
-  }
-
   if (loading || inmobiliariaLoading) {
     return (
       <div className="p-8">
@@ -1198,7 +1136,7 @@ export default function LeadsPage() {
                         const isDescartado = lead.Estado === "Descartado"
                         const isAceptado = lead.Estado === "Aceptado"
                         const completionPercentage = calculateDataCompleteness(lead)
-                        const isDataComplete = completionPercentage === 100
+                        const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
                         const personaCount = countPersonas(lead)
 
                         // Add checkbox for individual selection
@@ -1217,7 +1155,7 @@ export default function LeadsPage() {
                                 : isAceptado
                                   ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
                                   : isDataComplete
-                                    ? "" // Removed green styling for Completo state, only badge will be green
+                                    ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
                                     : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                             }`}
                             onClick={() => openLeadDetail(lead)}
@@ -1479,7 +1417,7 @@ export default function LeadsPage() {
                       const isDescartado = lead.Estado === "Descartado"
                       const isAceptado = lead.Estado === "Aceptado"
                       const completionPercentage = calculateDataCompleteness(lead)
-                      const isDataComplete = completionPercentage === 100
+                      const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
                       const personaCount = countPersonas(lead)
                       const isSelected = selectedLeadIds.includes(lead.id)
 
@@ -1492,7 +1430,7 @@ export default function LeadsPage() {
                               : isAceptado
                                 ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
                                 : isDataComplete
-                                  ? "" // Removed green styling for Completo state, only badge will be green
+                                  ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
                                   : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                           }`}
                           onClick={() => openLeadDetail(lead)}
@@ -1894,10 +1832,11 @@ export default function LeadsPage() {
                       onClick={async () => {
                         if (selectedLead) {
                           await updateLeadStatus(selectedLead.id, "Descartado")
-                          // The actual state update will be handled by executeDescartadoStatusChange or updateLeadStatus itself
-                          // if it's not Descartado. If it's Descartado, the toast will appear and state will be updated there.
-                          // So, we close the modal here after initiating the process.
-                          setSelectedLead(null)
+                          setSelectedLead({ ...selectedLead, Estado: "Descartado" })
+                          toast({
+                            title: "Candidato denegado",
+                            description: "El estado ha sido cambiado a Descartado",
+                          })
                         }
                       }}
                     >
@@ -3724,104 +3663,80 @@ export default function LeadsPage() {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-600">
-              <AlertCircle className="h-5 w-5" />
-              Confirmación de Descarte
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm font-medium text-amber-900">
-                Se enviará un correo electrónico a <span className="font-bold">{pendingDescartadoLead?.leadEmail}</span>{" "}
-                notificando que ha sido marcado como inquilino abandonado.
-              </p>
-            </div>
-            <p className="text-sm text-muted-foreground">¿Desea continuar con esta acción?</p>
-          </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 bg-transparent"
-              onClick={() => {
-                setIsFirstDescartadoConfirmOpen(false)
-                setPendingDescartadoLead(null)
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button className="flex-1 bg-amber-600 hover:bg-amber-700" onClick={handleFirstDescartadoConfirm}>
-              Continuar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isFirstDescartadoConfirmOpen} onOpenChange={setIsFirstDescartadoConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-600">
-              <AlertCircle className="h-5 w-5" />
-              Confirmación de Descarte
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm font-medium text-amber-900">
-                Se enviará un correo electrónico a <span className="font-bold">{pendingDescartadoLead?.leadEmail}</span>{" "}
-                notificando que ha sido marcado como inquilino abandonado.
-              </p>
-            </div>
-            <p className="text-sm text-muted-foreground">¿Desea continuar con esta acción?</p>
-          </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 bg-transparent"
-              onClick={() => {
-                setIsFirstDescartadoConfirmOpen(false)
-                setPendingDescartadoLead(null)
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button className="flex-1 hover:bg-amber-700 bg-popover-foreground" onClick={handleFirstDescartadoConfirm}>
-              Continuar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isSecondDescartadoConfirmOpen} onOpenChange={setIsSecondDescartadoConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
               <XCircle className="h-5 w-5" />
-              Confirmación Final
+              Confirmar Cambio de Estado
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm font-medium text-red-900">
-                Esta es la confirmación final. El lead será marcado como <span className="font-bold">Descartado</span> y
-                se enviará el correo de notificación.
+          <div className="space-y-4">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm font-medium text-amber-800">
+                ⚠️ Esta acción es irreversible. Por favor, revise la selección antes de continuar.
               </p>
             </div>
-            <p className="text-sm text-muted-foreground">¿Está completamente seguro de que desea proceder?</p>
-          </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 bg-transparent"
-              onClick={() => {
-                setIsSecondDescartadoConfirmOpen(false)
-                setPendingDescartadoLead(null)
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button className="flex-1 bg-red-600 hover:bg-red-700" onClick={executeDescartadoStatusChange}>
-              Confirmar y Enviar
-            </Button>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                Se cambiará el estado de {selectedLeadIds.length} lead(s) a:{" "}
+                <span className="font-bold text-blue-600">{pendingBulkStatus}</span>
+              </p>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto border rounded-lg">
+              <div className="divide-y">
+                {selectedLeadIds.map((leadId) => {
+                  const lead = leads.find((l) => l.id === leadId)
+                  if (!lead) return null
+
+                  return (
+                    <div key={leadId} className="p-3 hover:bg-gray-50 flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Checkbox checked={true} onCheckedChange={() => toggleLeadInConfirmation(leadId)} />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{lead.Nombre || "Sin nombre"}</p>
+                          <p className="text-xs text-gray-500">{lead.Correo}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {lead.Estado || "Sin estado"}
+                          </Badge>
+                          <span className="text-gray-400">→</span>
+                          <Badge className="text-xs bg-blue-100 text-blue-700">{pendingBulkStatus}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {selectedLeadIds.length === 0 && (
+              <p className="text-sm text-amber-600 text-center py-4">
+                No hay leads seleccionados. Por favor, seleccione al menos un lead.
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setBulkConfirmationOpen(false)
+                  setPendingBulkStatus(null)
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={executeBulkStatusChange}
+                disabled={selectedLeadIds.length === 0}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Confirmar Cambio
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
+      {/* Dialog open={isApprovalDialogOpen} ... has been moved to LeadApproveWrapper */}
     </div>
   )
 }
