@@ -75,10 +75,6 @@
 }
 
 @theme inline {
-  /* Add font family variables */
-  --font-sans: "Inter", "Inter Fallback", system-ui, -apple-system, sans-serif;
-  --font-mono: "Roboto Mono", "Roboto Mono Fallback", "Courier New", monospace;
-
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -123,16 +119,5 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-
-  /* Adding Radix scroll area viewport styles to hide scrollbars */
-  [data-radix-scroll-area-viewport] {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  [data-radix-scroll-area-viewport]::-webkit-scrollbar {
-    display: none;
   }
 }

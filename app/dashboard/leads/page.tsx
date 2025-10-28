@@ -39,11 +39,11 @@ import {
   MoreVertical,
   Copy,
   Check,
+  AlertCircle,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast" // Added useToast hook
 import React from "react" // Imported React
 import { LeadApproveWrapper } from "@/components/lead-approve-wrapper"
-import { LeadDenyWrapper } from "@/components/lead-deny-wrapper"
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -51,24 +51,11 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 )
 
-type Lead = {
-  id: string // Added id field
-  idc: number
-  IDC?: number
-  created_at?: string
-  Estado?:
-    | "Datos Incompletos"
-    | "Completo"
-    | "Aprobado"
-    | "Descartado"
-    | "Necesidad de Aval"
-    | "Pendiente"
-    | "Validado"
-    | "Completado"
-    | "Rechazado"
-    | "Aceptado"
-    | "Descartado"
-    | "Pedir Aval"
+interface Lead {
+  id: string
+  IDC?: string
+  created_at: string
+  Estado?: string
   Pedir_Aval?: boolean
   Nombre?: string
   Correo?: string
@@ -85,37 +72,13 @@ type Lead = {
   Documento_2?: string
   Pais_2?: string
   Ingresos_2?: number
-  "Correo 2"?: string
-  "Telefono 2"?: string
-  "Codigo_Postal 2"?: string
-  tipo2?: string
   Persona_3?: string
   Tipo_Documento_3?: string
   Documento_3?: string
   Ingresos_3?: number
-  "Correo 3"?: string
-  "Telefono 3"?: string
-  "Codigo_Postal 3"?: string
-  "Pais 3"?: string
-  tipo3?: string
-  Persona_4?: string
-  "Tipo_Documento 4"?: string
-  Documento_4?: string
-  "Pais 4"?: string
-  Ingresos_4?: number
-  "Correo 4"?: string
-  "Telefono 4"?: string
-  "Codigo_Postal 4"?: string
-  tipo4?: string
-  Obsevaciones?: string
-  Recordatorio?: boolean
-  usuario?: number
-  visita_propuesta?: boolean
-  aceptado?: boolean
-  Fecha_Datos_Completos?: string
-  "fecha de visita"?: string
-  "visista completada"?: boolean
   Observaciones?: string
+  Recordatorio?: string
+  usuario?: string
 }
 
 interface Advertisement {
@@ -164,7 +127,7 @@ export default function LeadsPage() {
   const [conversionRate, setConversionRate] = useState(0)
   const [isEditingPersonalInfo, setIsEditingPersonalInfo] = useState(false)
   const [editFormData, setEditFormData] = useState<Partial<Lead>>({})
-  const [selectedPersona, setSelectedPersona] = useState<1 | 2 | 3 | 4>(1)
+  const [selectedPersona, setSelectedPersona] = useState<1 | 2 | 3>(1)
   const [documentStatus, setDocumentStatus] = useState<{ [key: string]: "pending" | "verified" | "not_verified" }>({
     dni: "pending",
     income: "pending",
@@ -187,7 +150,6 @@ export default function LeadsPage() {
     persona1Income: number
     persona2Income: number
     persona3Income: number
-    persona4Income: number // Added for Persona 4 (Aval)
     actualRent: number | null
     minRequiredIncome: number | null
     idealIncome: number | null
@@ -210,6 +172,10 @@ export default function LeadsPage() {
   const [isBulkSelectionMode, setIsBulkSelectionMode] = useState(false)
   const [bulkConfirmationOpen, setBulkConfirmationOpen] = useState(false)
   const [pendingBulkStatus, setPendingBulkStatus] = useState<string | null>(null)
+
+  const [isFirstDescartadoConfirmOpen, setIsFirstDescartadoConfirmOpen] = useState(false)
+  const [isSecondDescartadoConfirmOpen, setIsSecondDescartadoConfirmOpen] = useState(false)
+  const [pendingDescartadoLead, setPendingDescartadoLead] = useState<{ leadId: string; leadEmail: string } | null>(null)
 
   useEffect(() => {
     if (!inmobiliariaLoading && inmobiliariaId !== null) {
@@ -459,29 +425,6 @@ export default function LeadsPage() {
             Documento_2: editFormData.Documento_2,
             Pais_2: editFormData.Pais_2,
             Ingresos_2: editFormData.Ingresos_2,
-            "Correo 2": editFormData["Correo 2"],
-            "Telefono 2": editFormData["Telefono 2"],
-            "Codigo_Postal 2": editFormData["Codigo_Postal 2"],
-            tipo2: editFormData.tipo2,
-
-            Persona_3: editFormData.Persona_3,
-            Tipo_Documento_3: editFormData.Tipo_Documento_3,
-            Documento_3: editFormData.Documento_3,
-            Ingresos_3: editFormData.Ingresos_3,
-            "Correo 3": editFormData["Correo 3"],
-            "Telefono 3": editFormData["Telefono 3"],
-            "Codigo_Postal 3": editFormData["Codigo_Postal 3"],
-            tipo3: editFormData.tipo3,
-
-            Persona_4: editFormData.Persona_4,
-            "Tipo_Documento 4": editFormData["Tipo_Documento 4"],
-            Documento_4: editFormData.Documento_4,
-            "Pais 4": editFormData["Pais 4"],
-            Ingresos_4: editFormData.Ingresos_4,
-            "Correo 4": editFormData["Correo 4"],
-            "Telefono 4": editFormData["Telefono 4"],
-            "Codigo_Postal 4": editFormData["Codigo_Postal 4"],
-            tipo4: editFormData.tipo4,
           }),
           ...(selectedPersona === 2 && {
             Persona_2: editFormData.Persona_2,
@@ -489,31 +432,12 @@ export default function LeadsPage() {
             Documento_2: editFormData.Documento_2,
             Pais_2: editFormData.Pais_2,
             Ingresos_2: editFormData.Ingresos_2,
-            "Correo 2": editFormData["Correo 2"],
-            "Telefono 2": editFormData["Telefono 2"],
-            "Codigo_Postal 2": editFormData["Codigo_Postal 2"],
-            tipo2: editFormData.tipo2,
           }),
           ...(selectedPersona === 3 && {
             Persona_3: editFormData.Persona_3,
             Tipo_Documento_3: editFormData.Tipo_Documento_3,
             Documento_3: editFormData.Documento_3,
             Ingresos_3: editFormData.Ingresos_3,
-            "Correo 3": editFormData["Correo 3"],
-            "Telefono 3": editFormData["Telefono 3"],
-            "Codigo_Postal 3": editFormData["Codigo_Postal 3"],
-            tipo3: editFormData.tipo3,
-          }),
-          ...(selectedPersona === 4 && {
-            Persona_4: editFormData.Persona_4,
-            "Tipo_Documento 4": editFormData["Tipo_Documento 4"],
-            Documento_4: editFormData.Documento_4,
-            "Pais 4": editFormData["Pais 4"],
-            Ingresos_4: editFormData.Ingresos_4,
-            "Correo 4": editFormData["Correo 4"],
-            "Telefono 4": editFormData["Telefono 4"],
-            "Codigo_Postal 4": editFormData["Codigo_Postal 4"],
-            tipo4: editFormData.tipo4,
           }),
         })
         .eq("id", selectedLead.id)
@@ -537,6 +461,13 @@ export default function LeadsPage() {
   }
 
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
+    if (newStatus === "Descartado") {
+      const lead = leads.find((l) => l.id === leadId)
+      setPendingDescartadoLead({ leadId, leadEmail: lead?.Correo || "sin correo" })
+      setIsFirstDescartadoConfirmOpen(true)
+      return
+    }
+
     try {
       const { error } = await supabase.from("Clientes").update({ Estado: newStatus }).eq("id", leadId)
 
@@ -544,6 +475,11 @@ export default function LeadsPage() {
 
       // Update local state
       setLeads(leads.map((lead) => (lead.id === leadId ? { ...lead, Estado: newStatus } : lead)))
+
+      // Update selectedLead if it's the one being changed
+      if (selectedLead && selectedLead.id === leadId) {
+        setSelectedLead({ ...selectedLead, Estado: newStatus })
+      }
 
       console.log("[v0] Lead status updated successfully")
     } catch (err) {
@@ -567,10 +503,10 @@ export default function LeadsPage() {
   }
 
   // Added "Datos Completos" and "Datos Incompletos" cases with appropriate colors.
-  const getStatusColors = (estado: string | null | undefined) => {
+  const getStatusColors = (estado: string | null) => {
     switch (estado) {
       case "Datos Completos":
-      case "Completo":
+      case "Completado":
         return {
           bg: "#dcfce7",
           border: "#22c55e",
@@ -582,7 +518,7 @@ export default function LeadsPage() {
           bg: "#fef3c7",
           border: "#f59e0b",
           text: "#d97706",
-          label: estado,
+          label: "Datos Incompletos",
         }
       case "Validado":
         return {
@@ -624,7 +560,7 @@ export default function LeadsPage() {
           bg: "#f3f4f6",
           border: "#9ca3af",
           text: "#6b7280",
-          label: estado,
+          label: "Descartado",
         }
       default:
         // For any other Estado value, use neutral colors but display the actual value
@@ -637,98 +573,45 @@ export default function LeadsPage() {
     }
   }
 
-  const calculateCompleteness = (lead: Lead) => {
-    let totalFields = 10 // Base fields for main person
+  const calculateDataCompleteness = (lead: Lead) => {
+    let totalFields = 0
     let filledFields = 0
 
-    // Main person fields (10 fields)
-    const mainFields = [
+    // Persona 1 fields (8 fields)
+    const persona1Fields = [
       lead.Nombre,
       lead.Correo,
       lead.Telefono,
-      lead.Documento,
-      lead.Tipo_Documento,
-      lead.Codigo_Postal,
       lead.Pais,
       lead.Ingresos,
-      lead.Fecha_Entrada,
-      lead.Inmueble,
+      lead.Codigo_Postal,
+      lead.Tipo_Documento,
+      lead.Documento,
     ]
-    filledFields += mainFields.filter((field) => field !== null && field !== undefined && field !== "").length
+    totalFields += 8
+    filledFields += persona1Fields.filter((field) => field !== null && field !== undefined && field !== "").length
 
-    // Persona 2 fields (8 fields) - only count if Persona_2 name exists
+    // Persona 2 fields (5 fields) - only count if Persona_2 name exists
     if (lead.Persona_2) {
-      const persona2Fields = [
-        lead.Persona_2,
-        lead.Pais_2,
-        lead.Ingresos_2,
-        lead.Tipo_Documento_2,
-        lead.Documento_2,
-        lead["Correo 2"],
-        lead["Telefono 2"],
-        lead["Codigo_Postal 2"],
-      ]
-      totalFields += 8
+      const persona2Fields = [lead.Persona_2, lead.Pais_2, lead.Ingresos_2, lead.Tipo_Documento_2, lead.Documento_2]
+      totalFields += 5
       filledFields += persona2Fields.filter((field) => field !== null && field !== undefined && field !== "").length
     }
 
-    // Persona 3 fields (7 fields) - only count if Persona_3 name exists
+    // Persona 3 fields (4 fields) - only count if Persona_3 name exists
     if (lead.Persona_3) {
-      const persona3Fields = [
-        lead.Persona_3,
-        lead.Ingresos_3,
-        lead.Tipo_Documento_3,
-        lead.Documento_3,
-        lead["Correo 3"],
-        lead["Telefono 3"],
-        lead["Codigo_Postal 3"],
-      ]
-      totalFields += 7
+      const persona3Fields = [lead.Persona_3, lead.Ingresos_3, lead.Tipo_Documento_3, lead.Documento_3]
+      totalFields += 4
       filledFields += persona3Fields.filter((field) => field !== null && field !== undefined && field !== "").length
     }
 
-    // Persona 4 (AVAL) fields (8 fields) - only count if Persona_4 name exists
-    if (lead.Persona_4) {
-      const persona4Fields = [
-        lead.Persona_4,
-        lead["Pais 4"],
-        lead.Ingresos_4,
-        lead["Tipo_Documento 4"],
-        lead.Documento_4,
-        lead["Correo 4"],
-        lead["Telefono 4"],
-        lead["Codigo_Postal 4"],
-      ]
-      totalFields += 8
-      filledFields += persona4Fields.filter((field) => field !== null && field !== undefined && field !== "").length
-    }
-
-    const percentage = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0
-    return { percentage, filledFields, totalFields }
-  }
-
-  const isAvalDataComplete = (lead: Lead): boolean => {
-    if (!lead.Persona_4) return false
-
-    const requiredFields = [
-      lead.Persona_4,
-      lead["Tipo_Documento 4"],
-      lead.Documento_4,
-      lead["Pais 4"],
-      lead.Ingresos_4,
-      lead["Correo 4"],
-      lead["Telefono 4"],
-      lead["Codigo_Postal 4"],
-    ]
-
-    return requiredFields.every((field) => field !== null && field !== undefined && field !== "")
+    return Math.round((filledFields / totalFields) * 100)
   }
 
   const countPersonas = (lead: Lead) => {
     let count = 1 // Always at least Persona 1
     if (lead.Persona_2) count++
     if (lead.Persona_3) count++
-    if (lead.Persona_4) count++ // Count Persona 4 (Aval)
     return count
   }
 
@@ -877,8 +760,7 @@ export default function LeadsPage() {
     const persona1Income = selectedLead.Ingresos || 0
     const persona2Income = selectedLead.Ingresos_2 || 0
     const persona3Income = selectedLead.Ingresos_3 || 0
-    const persona4Income = selectedLead.Ingresos_4 || 0 // Income from Persona 4 (Aval)
-    const totalIncome = persona1Income + persona2Income + persona3Income + persona4Income
+    const totalIncome = persona1Income + persona2Income + persona3Income
 
     // Calculate required income thresholds
     const minRequiredIncome = actualRent ? actualRent * 2.5 : null // 40% ratio (rent should be max 40% of income)
@@ -895,7 +777,6 @@ export default function LeadsPage() {
       persona1Income,
       persona2Income,
       persona3Income,
-      persona4Income, // Include Persona 4 income
       actualRent,
       minRequiredIncome,
       idealIncome,
@@ -971,6 +852,51 @@ export default function LeadsPage() {
       setSelectedLeadIds([])
     } else {
       setSelectedLeadIds(filteredLeads.map((lead) => lead.id))
+    }
+  }
+
+  const handleFirstDescartadoConfirm = () => {
+    setIsFirstDescartadoConfirmOpen(false)
+    setIsSecondDescartadoConfirmOpen(true)
+  }
+
+  const executeDescartadoStatusChange = async () => {
+    if (!pendingDescartadoLead) return
+
+    try {
+      const { error } = await supabase
+        .from("Clientes")
+        .update({ Estado: "Descartado" })
+        .eq("id", pendingDescartadoLead.leadId)
+
+      if (error) throw error
+
+      // Update local state
+      setLeads(
+        leads.map((lead) => (lead.id === pendingDescartadoLead.leadId ? { ...lead, Estado: "Descartado" } : lead)),
+      )
+
+      // Update selectedLead if it's the one being changed
+      if (selectedLead && selectedLead.id === pendingDescartadoLead.leadId) {
+        setSelectedLead({ ...selectedLead, Estado: "Descartado" })
+      }
+
+      toast({
+        title: "Estado actualizado",
+        description: "El lead ha sido marcado como Descartado y se enviará un correo de notificación.",
+      })
+
+      console.log("[v0] Lead status updated to Descartado successfully")
+    } catch (err) {
+      console.error("[v0] Error updating lead status to Descartado:", err)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del lead",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSecondDescartadoConfirmOpen(false)
+      setPendingDescartadoLead(null)
     }
   }
 
@@ -1271,8 +1197,8 @@ export default function LeadsPage() {
                         const isComplete = isLeadComplete(lead)
                         const isDescartado = lead.Estado === "Descartado"
                         const isAceptado = lead.Estado === "Aceptado"
-                        const { percentage: completionPercentage, totalFields } = calculateCompleteness(lead)
-                        const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
+                        const completionPercentage = calculateDataCompleteness(lead)
+                        const isDataComplete = completionPercentage === 100
                         const personaCount = countPersonas(lead)
 
                         // Add checkbox for individual selection
@@ -1290,14 +1216,9 @@ export default function LeadsPage() {
                                 ? "opacity-40 bg-gray-50 border-gray-300"
                                 : isAceptado
                                   ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
-                                  : // Add special styling for "Pedir Aval" status
-                                    lead.Estado === "Pedir Aval"
-                                    ? isAvalDataComplete(lead)
-                                      ? "border-green-200 bg-green-50/30 hover:bg-green-50/50" // Green when aval data is complete
-                                      : "border-purple-300 bg-purple-50/30 hover:bg-purple-50/50" // Purple when aval data is incomplete
-                                    : isDataComplete
-                                      ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
-                                      : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
+                                  : isDataComplete
+                                    ? "" // Removed green styling for Completo state, only badge will be green
+                                    : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                             }`}
                             onClick={() => openLeadDetail(lead)}
                           >
@@ -1332,72 +1253,42 @@ export default function LeadsPage() {
                                       <h3 className="font-semibold text-sm truncate">{lead.Nombre || "Sin nombre"}</h3>
 
                                       <div className="flex items-center gap-1.5">
-                                        {(() => {
-                                          const statusColors = getStatusColors(lead.Estado)
-                                          const showEstadoBadge =
-                                            lead.Estado &&
-                                            lead.Estado !== "Datos Incompletos" &&
-                                            lead.Estado !== "Completo"
-
-                                          if (showEstadoBadge) {
-                                            return (
-                                              <div
-                                                className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border"
-                                                style={{
-                                                  backgroundColor: statusColors.bg,
-                                                  borderColor: statusColors.border,
-                                                }}
-                                              >
-                                                <span
-                                                  className="text-xs font-semibold"
-                                                  style={{ color: statusColors.text }}
-                                                >
-                                                  {lead.Estado === "Aceptado" ? "✓ " : ""}
-                                                  {statusColors.label}
-                                                </span>
-                                                <div
-                                                  className="h-3 w-px"
-                                                  style={{ backgroundColor: statusColors.border }}
-                                                />
-                                                <div className="flex items-center gap-0.5">
-                                                  <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                                  <span
-                                                    className="text-xs font-semibold"
-                                                    style={{ color: statusColors.text }}
-                                                  >
-                                                    {completionPercentage}%
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            )
-                                          } else if (isDataComplete) {
-                                            return (
-                                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
-                                                <span className="text-xs font-semibold text-green-800">✓ Completo</span>
-                                                <div className="h-3 w-px bg-green-400" />
-                                                <div className="flex items-center gap-0.5">
-                                                  <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                                  <span className="text-xs font-semibold text-green-700">
-                                                    {completionPercentage}%
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            )
-                                          } else {
-                                            return (
-                                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
-                                                <span className="text-xs font-semibold text-amber-800">Incompleto</span>
-                                                <div className="h-3 w-px bg-amber-400" />
-                                                <div className="flex items-center gap-0.5">
-                                                  <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                                  <span className="text-xs font-semibold text-amber-700">
-                                                    {completionPercentage}%
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            )
-                                          }
-                                        })()}
+                                        {lead.Estado === "Aceptado" && (
+                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
+                                            <span className="text-xs font-semibold text-emerald-800">✓ Aprobado</span>
+                                            <div className="h-3 w-px bg-emerald-400" />
+                                            <div className="flex items-center gap-0.5">
+                                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                              <span className="text-xs font-semibold text-emerald-700">
+                                                {completionPercentage}%
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {lead.Estado !== "Aceptado" && isDataComplete && (
+                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
+                                            <span className="text-xs font-semibold text-green-800">✓ Completo</span>
+                                            <div className="h-3 w-px bg-green-400" />
+                                            <div className="flex items-center gap-0.5">
+                                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                              <span className="text-xs font-semibold text-green-700">
+                                                {completionPercentage}%
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {lead.Estado !== "Aceptado" && !isDataComplete && (
+                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
+                                            <span className="text-xs font-semibold text-amber-800">Incompleto</span>
+                                            <div className="h-3 w-px bg-amber-400" />
+                                            <div className="flex items-center gap-0.5">
+                                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                              <span className="text-xs font-semibold text-amber-700">
+                                                {completionPercentage}%
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
 
@@ -1421,10 +1312,7 @@ export default function LeadsPage() {
                                         <Euro className="h-3 w-3" />
                                         <span className="font-medium">
                                           {formatCurrency(
-                                            (lead.Ingresos || 0) +
-                                              (lead.Ingresos_2 || 0) +
-                                              (lead.Ingresos_3 || 0) +
-                                              (lead.Ingresos_4 || 0), // Include Persona 4 income
+                                            (lead.Ingresos || 0) + (lead.Ingresos_2 || 0) + (lead.Ingresos_3 || 0),
                                           )}
                                         </span>
                                       </div>
@@ -1590,8 +1478,8 @@ export default function LeadsPage() {
                       const isComplete = isLeadComplete(lead)
                       const isDescartado = lead.Estado === "Descartado"
                       const isAceptado = lead.Estado === "Aceptado"
-                      const { percentage: completionPercentage } = calculateCompleteness(lead)
-                      const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
+                      const completionPercentage = calculateDataCompleteness(lead)
+                      const isDataComplete = completionPercentage === 100
                       const personaCount = countPersonas(lead)
                       const isSelected = selectedLeadIds.includes(lead.id)
 
@@ -1603,14 +1491,9 @@ export default function LeadsPage() {
                               ? "opacity-40 bg-gray-50 border-gray-300"
                               : isAceptado
                                 ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
-                                : // Add special styling for "Pedir Aval" status
-                                  lead.Estado === "Pedir Aval"
-                                  ? isAvalDataComplete(lead)
-                                    ? "border-green-200 bg-green-50/30 hover:bg-green-50/50" // Green when aval data is complete
-                                    : "border-purple-300 bg-purple-50/30 hover:bg-purple-50/50" // Purple when aval data is incomplete
-                                  : isDataComplete
-                                    ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
-                                    : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
+                                : isDataComplete
+                                  ? "" // Removed green styling for Completo state, only badge will be green
+                                  : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                           }`}
                           onClick={() => openLeadDetail(lead)}
                         >
@@ -1645,72 +1528,42 @@ export default function LeadsPage() {
                                     <h3 className="font-semibold text-sm truncate">{lead.Nombre || "Sin nombre"}</h3>
 
                                     <div className="flex items-center gap-1.5">
-                                      {(() => {
-                                        const statusColors = getStatusColors(lead.Estado)
-                                        const showEstadoBadge =
-                                          lead.Estado &&
-                                          lead.Estado !== "Datos Incompletos" &&
-                                          lead.Estado !== "Completo"
-
-                                        if (showEstadoBadge) {
-                                          return (
-                                            <div
-                                              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border"
-                                              style={{
-                                                backgroundColor: statusColors.bg,
-                                                borderColor: statusColors.border,
-                                              }}
-                                            >
-                                              <span
-                                                className="text-xs font-semibold"
-                                                style={{ color: statusColors.text }}
-                                              >
-                                                {lead.Estado === "Aceptado" ? "✓ " : ""}
-                                                {statusColors.label}
-                                              </span>
-                                              <div
-                                                className="h-3 w-px"
-                                                style={{ backgroundColor: statusColors.border }}
-                                              />
-                                              <div className="flex items-center gap-0.5">
-                                                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                                <span
-                                                  className="text-xs font-semibold"
-                                                  style={{ color: statusColors.text }}
-                                                >
-                                                  {completionPercentage}%
-                                                </span>
-                                              </div>
-                                            </div>
-                                          )
-                                        } else if (isDataComplete) {
-                                          return (
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
-                                              <span className="text-xs font-semibold text-green-800">✓ Completo</span>
-                                              <div className="h-3 w-px bg-green-400" />
-                                              <div className="flex items-center gap-0.5">
-                                                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                                <span className="text-xs font-semibold text-green-700">
-                                                  {completionPercentage}%
-                                                </span>
-                                              </div>
-                                            </div>
-                                          )
-                                        } else {
-                                          return (
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
-                                              <span className="text-xs font-semibold text-amber-800">Incompleto</span>
-                                              <div className="h-3 w-px bg-amber-400" />
-                                              <div className="flex items-center gap-0.5">
-                                                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                                <span className="text-xs font-semibold text-amber-700">
-                                                  {completionPercentage}%
-                                                </span>
-                                              </div>
-                                            </div>
-                                          )
-                                        }
-                                      })()}
+                                      {lead.Estado === "Aceptado" && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
+                                          <span className="text-xs font-semibold text-emerald-800">✓ Aprobado</span>
+                                          <div className="h-3 w-px bg-emerald-400" />
+                                          <div className="flex items-center gap-0.5">
+                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                            <span className="text-xs font-semibold text-emerald-700">
+                                              {completionPercentage}%
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+                                      {lead.Estado !== "Aceptado" && isDataComplete && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
+                                          <span className="text-xs font-semibold text-green-800">✓ Completo</span>
+                                          <div className="h-3 w-px bg-green-400" />
+                                          <div className="flex items-center gap-0.5">
+                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                            <span className="text-xs font-semibold text-green-700">
+                                              {completionPercentage}%
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+                                      {lead.Estado !== "Aceptado" && !isDataComplete && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
+                                          <span className="text-xs font-semibold text-amber-800">Incompleto</span>
+                                          <div className="h-3 w-px bg-amber-400" />
+                                          <div className="flex items-center gap-0.5">
+                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                            <span className="text-xs font-semibold text-amber-700">
+                                              {completionPercentage}%
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
 
@@ -1734,10 +1587,7 @@ export default function LeadsPage() {
                                       <Euro className="h-3 w-3" />
                                       <span className="font-medium">
                                         {formatCurrency(
-                                          (lead.Ingresos || 0) +
-                                            (lead.Ingresos_2 || 0) +
-                                            (lead.Ingresos_3 || 0) +
-                                            (lead.Ingresos_4 || 0),
+                                          (lead.Ingresos || 0) + (lead.Ingresos_2 || 0) + (lead.Ingresos_3 || 0),
                                         )}
                                       </span>
                                     </div>
@@ -1885,8 +1735,8 @@ export default function LeadsPage() {
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+      </main>
       {/* Lead Detail Dialog */}
       {selectedLead && (
         <>
@@ -2027,11 +1877,33 @@ export default function LeadsPage() {
                       updateLeadStatus={updateLeadStatus}
                       onLeadUpdated={(updatedLead) => setSelectedLead(updatedLead)}
                     />
-                    <LeadDenyWrapper
-                      lead={selectedLead}
-                      updateLeadStatus={updateLeadStatus}
-                      onLeadUpdated={(updatedLead) => setSelectedLead(updatedLead)}
-                    />
+                    <button
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        padding: "0.5rem 1rem",
+                        backgroundColor: "transparent",
+                        color: "#6b7280",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "6px",
+                        fontSize: "0.875rem",
+                        fontWeight: "400",
+                        cursor: "pointer",
+                      }}
+                      onClick={async () => {
+                        if (selectedLead) {
+                          await updateLeadStatus(selectedLead.id, "Descartado")
+                          // The actual state update will be handled by executeDescartadoStatusChange or updateLeadStatus itself
+                          // if it's not Descartado. If it's Descartado, the toast will appear and state will be updated there.
+                          // So, we close the modal here after initiating the process.
+                          setSelectedLead(null)
+                        }
+                      }}
+                    >
+                      <XCircle size={16} />
+                      Denegar Candidato
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2042,13 +1914,12 @@ export default function LeadsPage() {
                   {/* Left Column */}
                   <div style={{ flex: "2", display: "flex", flexDirection: "column", gap: "1.25rem", minWidth: 0 }}>
                     {/* Vintage File Folder Tabs */}
-                    {(selectedLead?.Persona_2 || selectedLead?.Persona_3 || selectedLead?.Persona_4) && (
-                      <div className="flex gap-1 mb-0 justify-between items-center">
-                        <div className="flex gap-1">
-                          {/* Persona 1 Tab */}
-                          <button
-                            onClick={() => setSelectedPersona(1)}
-                            className={`
+                    {(selectedLead?.Persona_2 || selectedLead?.Persona_3) && (
+                      <div className="flex gap-1 mb-0">
+                        {/* Persona 1 Tab */}
+                        <button
+                          onClick={() => setSelectedPersona(1)}
+                          className={`
                               relative px-6 py-2.5 text-sm font-medium
                               border border-border rounded-t-lg
                               transition-all duration-200
@@ -2058,18 +1929,18 @@ export default function LeadsPage() {
                                   : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                               }
                             `}
-                          >
-                            <span className="tracking-wide">{selectedLead?.Nombre || "Persona 1"}</span>
-                            {selectedPersona === 1 && (
-                              <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
-                            )}
-                          </button>
+                        >
+                          <span className="tracking-wide">{selectedLead?.Nombre || "Persona 1"}</span>
+                          {selectedPersona === 1 && (
+                            <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
+                          )}
+                        </button>
 
-                          {/* Persona 2 Tab */}
-                          {selectedLead?.Persona_2 && (
-                            <button
-                              onClick={() => setSelectedPersona(2)}
-                              className={`
+                        {/* Persona 2 Tab */}
+                        {selectedLead?.Persona_2 && (
+                          <button
+                            onClick={() => setSelectedPersona(2)}
+                            className={`
                                 relative px-6 py-2.5 text-sm font-medium
                                 border border-border rounded-t-lg
                                 transition-all duration-200
@@ -2079,19 +1950,19 @@ export default function LeadsPage() {
                                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                                 }
                               `}
-                            >
-                              <span className="tracking-wide">{selectedLead.Persona_2}</span>
-                              {selectedPersona === 2 && (
-                                <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
-                              )}
-                            </button>
-                          )}
+                          >
+                            <span className="tracking-wide">{selectedLead.Persona_2}</span>
+                            {selectedPersona === 2 && (
+                              <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
+                            )}
+                          </button>
+                        )}
 
-                          {/* Persona 3 Tab */}
-                          {selectedLead?.Persona_3 && (
-                            <button
-                              onClick={() => setSelectedPersona(3)}
-                              className={`
+                        {/* Persona 3 Tab */}
+                        {selectedLead?.Persona_3 && (
+                          <button
+                            onClick={() => setSelectedPersona(3)}
+                            className={`
                                 relative px-6 py-2.5 text-sm font-medium
                                 border border-border rounded-t-lg
                                 transition-all duration-200
@@ -2101,33 +1972,10 @@ export default function LeadsPage() {
                                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                                 }
                               `}
-                            >
-                              <span className="tracking-wide">{selectedLead.Persona_3}</span>
-                              {selectedPersona === 3 && (
-                                <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
-                              )}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Persona 4 (AVAL) Tab - Aligned to the right with different style */}
-                        {selectedLead?.Persona_4 && (
-                          <button
-                            onClick={() => setSelectedPersona(4)}
-                            className={`
-                              relative px-6 py-2.5 text-sm font-medium
-                              border-2 rounded-t-lg
-                              transition-all duration-200
-                              ${
-                                selectedPersona === 4
-                                  ? "bg-amber-50 text-amber-900 border-amber-500 border-b-transparent z-10 -mb-px shadow-md"
-                                  : "bg-amber-100/50 text-amber-700 border-amber-300 hover:bg-amber-100 hover:border-amber-400"
-                              }
-                            `}
                           >
-                            <span className="tracking-wide font-semibold">🛡️ AVAL: {selectedLead.Persona_4}</span>
-                            {selectedPersona === 4 && (
-                              <div className="absolute bottom-0 left-0 right-0 h-px bg-amber-50" />
+                            <span className="tracking-wide">{selectedLead.Persona_3}</span>
+                            {selectedPersona === 3 && (
+                              <div className="absolute bottom-0 left-0 right-0 h-px bg-background" />
                             )}
                           </button>
                         )}
@@ -2138,7 +1986,7 @@ export default function LeadsPage() {
                       <div
                         className={`
                             border border-border bg-background p-5 shadow-sm
-                            ${selectedLead?.Persona_2 || selectedLead?.Persona_3 || selectedLead?.Persona_4 ? "rounded-tr-lg rounded-b-lg" : "rounded-lg"}
+                            ${selectedLead?.Persona_2 || selectedLead?.Persona_3 ? "rounded-tr-lg rounded-b-lg" : "rounded-lg"}
                           `}
                       >
                         <div className="flex justify-between items-center mb-5">
@@ -2532,6 +2380,7 @@ export default function LeadsPage() {
                       </div>
                     )}
 
+                    {/* Persona 2 Info */}
                     {selectedPersona === 2 && selectedLead?.Persona_2 && (
                       <div
                         style={{
@@ -2615,7 +2464,6 @@ export default function LeadsPage() {
                           )}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                          {/* Row 1: Nombre and Correo */}
                           <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
@@ -2650,24 +2498,24 @@ export default function LeadsPage() {
                                   marginBottom: "0.375rem",
                                 }}
                               >
-                                Correo Persona 2
+                                Tipo Documento Persona 2
                               </div>
                               {isEditingPersonalInfo ? (
                                 <Input
-                                  value={editFormData["Correo 2"] || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, "Correo 2": e.target.value })}
-                                  placeholder="email@ejemplo.com"
+                                  value={editFormData.Tipo_Documento_2 || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, Tipo_Documento_2: e.target.value })
+                                  }
+                                  placeholder="DNI, NIE, Pasaporte"
                                   className="h-9 text-sm"
                                 />
                               ) : (
                                 <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead["Correo 2"] || "No especificado"}
+                                  {selectedLead.Tipo_Documento_2 || "No especificado"}
                                 </div>
                               )}
                             </div>
                           </div>
-
-                          {/* Row 2: Telefono and Pais */}
                           <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
@@ -2678,18 +2526,18 @@ export default function LeadsPage() {
                                   marginBottom: "0.375rem",
                                 }}
                               >
-                                Teléfono Persona 2
+                                Documento Persona 2
                               </div>
                               {isEditingPersonalInfo ? (
                                 <Input
-                                  value={editFormData["Telefono 2"] || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, "Telefono 2": e.target.value })}
-                                  placeholder="+34 600 000 000"
+                                  value={editFormData.Documento_2 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_2: e.target.value })}
+                                  placeholder="12345678A"
                                   className="h-9 text-sm"
                                 />
                               ) : (
                                 <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead["Telefono 2"] || "No especificado"}
+                                  {selectedLead.Documento_2 || "No especificado"}
                                 </div>
                               )}
                             </div>
@@ -2718,436 +2566,41 @@ export default function LeadsPage() {
                               )}
                             </div>
                           </div>
-
-                          {/* Row 3: Ingresos and Codigo Postal */}
-                          <div style={{ display: "flex", gap: "1.5rem" }}>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  fontWeight: "500",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Ingresos Persona 2 (€)
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  type="number"
-                                  value={editFormData.Ingresos_2 || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({
-                                      ...editFormData,
-                                      Ingresos_2: Number.parseFloat(e.target.value) || 0,
-                                    })
-                                  }
-                                  placeholder="2000"
-                                  className="h-9 text-sm"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Ingresos_2
-                                    ? formatCurrency(selectedLead.Ingresos_2)
-                                    : "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  fontWeight: "500",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Código Postal Persona 2
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData["Codigo_Postal 2"] || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({ ...editFormData, "Codigo_Postal 2": e.target.value })
-                                  }
-                                  placeholder="28001"
-                                  className="h-9 text-sm"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead["Codigo_Postal 2"] || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Row 4: Tipo Documento and Documento */}
-                          <div style={{ display: "flex", gap: "1.5rem" }}>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  fontWeight: "500",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Tipo Documento Persona 2
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData.Tipo_Documento_2 || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({ ...editFormData, Tipo_Documento_2: e.target.value })
-                                  }
-                                  placeholder="DNI, NIE, Pasaporte"
-                                  className="h-9 text-sm"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Tipo_Documento_2 || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  fontWeight: "500",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Documento Persona 2
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData.Documento_2 || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_2: e.target.value })}
-                                  placeholder="12345678A"
-                                  className="h-9 text-sm"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Documento_2 || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedPersona === 4 && selectedLead?.Persona_4 && (
-                      <div
-                        style={{
-                          border: "2px solid #f59e0b",
-                          borderRadius: "8px",
-                          padding: "1.25rem",
-                          background: "linear-gradient(to bottom, #fffbeb, #fef3c7)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: "1.25rem",
-                          }}
-                        >
-                          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                            <h2 style={{ fontSize: "1.125rem", fontWeight: "600", margin: 0, color: "#92400e" }}>
-                              🛡️ Información del AVAL
-                            </h2>
-                            <p style={{ fontSize: "0.75rem", color: "#78350f", margin: 0 }}>
-                              Datos del avalista o garante
-                            </p>
-                          </div>
-                          {!isEditingPersonalInfo ? (
-                            <button
+                          <div style={{ flex: "1", minWidth: 0 }}>
+                            <div
                               style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.5rem",
-                                background: "none",
-                                border: "none",
-                                fontSize: "0.875rem",
-                                color: "#92400e",
-                                cursor: "pointer",
+                                fontSize: "0.75rem",
+                                color: "#6b7280",
+                                fontWeight: "500",
+                                marginBottom: "0.375rem",
                               }}
-                              onClick={() => setIsEditingPersonalInfo(true)}
                             >
-                              <Edit size={14} />
-                              Editar
-                            </button>
-                          ) : (
-                            <div style={{ display: "flex", gap: "0.5rem" }}>
-                              <button
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "0.5rem",
-                                  padding: "0.375rem 0.75rem",
-                                  backgroundColor: "#10b981",
-                                  color: "white",
-                                  border: "none",
-                                  borderRadius: "6px",
-                                  fontSize: "0.875rem",
-                                  cursor: "pointer",
-                                  fontWeight: "500",
-                                }}
-                                onClick={savePersonalInfo}
-                              >
-                                <Check size={14} />
-                                Guardar
-                              </button>
-                              <button
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "0.5rem",
-                                  padding: "0.375rem 0.75rem",
-                                  backgroundColor: "#ef4444",
-                                  color: "white",
-                                  border: "none",
-                                  borderRadius: "6px",
-                                  fontSize: "0.875rem",
-                                  cursor: "pointer",
-                                  fontWeight: "500",
-                                }}
-                                onClick={cancelEdit}
-                              >
-                                <X size={14} />
-                                Cancelar
-                              </button>
+                              Ingresos Persona 2 (€)
                             </div>
-                          )}
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                          {/* Row 1: Nombre and Correo */}
-                          <div style={{ display: "flex", gap: "1.5rem" }}>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#92400e",
-                                  fontWeight: "600",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Nombre del AVAL
+                            {isEditingPersonalInfo ? (
+                              <Input
+                                type="number"
+                                value={editFormData.Ingresos_2 || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    Ingresos_2: Number.parseFloat(e.target.value) || 0,
+                                  })
+                                }
+                                placeholder="2000"
+                                className="h-9 text-sm"
+                              />
+                            ) : (
+                              <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                                {selectedLead.Ingresos_2 ? formatCurrency(selectedLead.Ingresos_2) : "No especificado"}
                               </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData.Persona_4 || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, Persona_4: e.target.value })}
-                                  placeholder="Nombre del avalista"
-                                  className="h-9 text-sm bg-white"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "600", color: "#78350f" }}>
-                                  {selectedLead.Persona_4 || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#92400e",
-                                  fontWeight: "600",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Correo del AVAL
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData["Correo 4"] || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, "Correo 4": e.target.value })}
-                                  placeholder="email@ejemplo.com"
-                                  className="h-9 text-sm bg-white"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
-                                  {selectedLead["Correo 4"] || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Row 2: Telefono and Pais */}
-                          <div style={{ display: "flex", gap: "1.5rem" }}>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#92400e",
-                                  fontWeight: "600",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Teléfono del AVAL
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData["Telefono 4"] || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, "Telefono 4": e.target.value })}
-                                  placeholder="+34 600 000 000"
-                                  className="h-9 text-sm bg-white"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
-                                  {selectedLead["Telefono 4"] || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#92400e",
-                                  fontWeight: "600",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                País del AVAL
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData["Pais 4"] || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, "Pais 4": e.target.value })}
-                                  placeholder="España"
-                                  className="h-9 text-sm bg-white"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
-                                  {selectedLead["Pais 4"] || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Row 3: Ingresos and Codigo Postal */}
-                          <div style={{ display: "flex", gap: "1.5rem" }}>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#92400e",
-                                  fontWeight: "600",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Ingresos del AVAL (€)
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  type="number"
-                                  value={editFormData.Ingresos_4 || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({
-                                      ...editFormData,
-                                      Ingresos_4: Number.parseFloat(e.target.value) || 0,
-                                    })
-                                  }
-                                  placeholder="2000"
-                                  className="h-9 text-sm bg-white"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
-                                  {selectedLead.Ingresos_4
-                                    ? formatCurrency(selectedLead.Ingresos_4)
-                                    : "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#92400e",
-                                  fontWeight: "600",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Código Postal del AVAL
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData["Codigo_Postal 4"] || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({ ...editFormData, "Codigo_Postal 4": e.target.value })
-                                  }
-                                  placeholder="28001"
-                                  className="h-9 text-sm bg-white"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
-                                  {selectedLead["Codigo_Postal 4"] || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Row 4: Tipo Documento and Documento */}
-                          <div style={{ display: "flex", gap: "1.5rem" }}>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#92400e",
-                                  fontWeight: "600",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Tipo Documento del AVAL
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData["Tipo_Documento 4"] || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({ ...editFormData, "Tipo_Documento 4": e.target.value })
-                                  }
-                                  placeholder="DNI, NIE, Pasaporte"
-                                  className="h-9 text-sm bg-white"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
-                                  {selectedLead["Tipo_Documento 4"] || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#92400e",
-                                  fontWeight: "600",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Documento del AVAL
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData.Documento_4 || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_4: e.target.value })}
-                                  placeholder="12345678A"
-                                  className="h-9 text-sm bg-white"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500", color: "#78350f" }}>
-                                  {selectedLead.Documento_4 || "No especificado"}
-                                </div>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Add Persona 3 section */}
+                    {/* Persona 3 Info */}
                     {selectedPersona === 3 && selectedLead?.Persona_3 && (
                       <div
                         style={{
@@ -3231,7 +2684,6 @@ export default function LeadsPage() {
                           )}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                          {/* Row 1: Nombre and Correo */}
                           <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
@@ -3266,24 +2718,24 @@ export default function LeadsPage() {
                                   marginBottom: "0.375rem",
                                 }}
                               >
-                                Correo Persona 3
+                                Tipo Documento Persona 3
                               </div>
                               {isEditingPersonalInfo ? (
                                 <Input
-                                  value={editFormData["Correo 3"] || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, "Correo 3": e.target.value })}
-                                  placeholder="email@ejemplo.com"
+                                  value={editFormData.Tipo_Documento_3 || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({ ...editFormData, Tipo_Documento_3: e.target.value })
+                                  }
+                                  placeholder="DNI, NIE, Pasaporte"
                                   className="h-9 text-sm"
                                 />
                               ) : (
                                 <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead["Correo 3"] || "No especificado"}
+                                  {selectedLead.Tipo_Documento_3 || "No especificado"}
                                 </div>
                               )}
                             </div>
                           </div>
-
-                          {/* Row 2: Telefono and Pais */}
                           <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
@@ -3294,49 +2746,21 @@ export default function LeadsPage() {
                                   marginBottom: "0.375rem",
                                 }}
                               >
-                                Teléfono Persona 3
+                                Documento Persona 3
                               </div>
                               {isEditingPersonalInfo ? (
                                 <Input
-                                  value={editFormData["Telefono 3"] || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, "Telefono 3": e.target.value })}
-                                  placeholder="+34 600 000 000"
+                                  value={editFormData.Documento_3 || ""}
+                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_3: e.target.value })}
+                                  placeholder="12345678A"
                                   className="h-9 text-sm"
                                 />
                               ) : (
                                 <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead["Telefono 3"] || "No especificado"}
+                                  {selectedLead.Documento_3 || "No especificado"}
                                 </div>
                               )}
                             </div>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  fontWeight: "500",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                País Persona 3
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData["Pais 3"] || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, "Pais 3": e.target.value })}
-                                  placeholder="España"
-                                  className="h-9 text-sm"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead["Pais 3"] || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Row 3: Ingresos and Codigo Postal */}
-                          <div style={{ display: "flex", gap: "1.5rem" }}>
                             <div style={{ flex: "1", minWidth: 0 }}>
                               <div
                                 style={{
@@ -3366,86 +2790,6 @@ export default function LeadsPage() {
                                   {selectedLead.Ingresos_3
                                     ? formatCurrency(selectedLead.Ingresos_3)
                                     : "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  fontWeight: "500",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Código Postal Persona 3
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData["Codigo_Postal 3"] || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({ ...editFormData, "Codigo_Postal 3": e.target.value })
-                                  }
-                                  placeholder="28001"
-                                  className="h-9 text-sm"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead["Codigo_Postal 3"] || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Row 4: Tipo Documento and Documento */}
-                          <div style={{ display: "flex", gap: "1.5rem" }}>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  fontWeight: "500",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Tipo Documento Persona 3
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData.Tipo_Documento_3 || ""}
-                                  onChange={(e) =>
-                                    setEditFormData({ ...editFormData, Tipo_Documento_3: e.target.value })
-                                  }
-                                  placeholder="DNI, NIE, Pasaporte"
-                                  className="h-9 text-sm"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Tipo_Documento_3 || "No especificado"}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ flex: "1", minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  fontWeight: "500",
-                                  marginBottom: "0.375rem",
-                                }}
-                              >
-                                Documento Persona 3
-                              </div>
-                              {isEditingPersonalInfo ? (
-                                <Input
-                                  value={editFormData.Documento_3 || ""}
-                                  onChange={(e) => setEditFormData({ ...editFormData, Documento_3: e.target.value })}
-                                  placeholder="12345678A"
-                                  className="h-9 text-sm"
-                                />
-                              ) : (
-                                <div style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-                                  {selectedLead.Documento_3 || "No especificado"}
                                 </div>
                               )}
                             </div>
@@ -4167,14 +3511,6 @@ export default function LeadsPage() {
                       </span>
                     </div>
                   )}
-                  {avalCalculation.persona4Income > 0 && (
-                    <div className="flex justify-between pl-2">
-                      <span className="text-xs text-muted-foreground">{selectedLead.Persona_4 || "Avalista"}:</span>
-                      <span className="text-xs font-medium text-green-600">
-                        {formatCurrency(avalCalculation.persona4Income)}
-                      </span>
-                    </div>
-                  )}
                   <div className="flex justify-between pt-1.5 border-t">
                     <span className="text-sm font-semibold text-muted-foreground">Total Ingresos:</span>
                     <span className="text-sm font-bold text-green-600">{formatCurrency(avalCalculation.income)}</span>
@@ -4388,80 +3724,104 @@ export default function LeadsPage() {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-600">
-              <XCircle className="h-5 w-5" />
-              Confirmar Cambio de Estado
+              <AlertCircle className="h-5 w-5" />
+              Confirmación de Descarte
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm font-medium text-amber-800">
-                ⚠️ Esta acción es irreversible. Por favor, revise la selección antes de continuar.
+              <p className="text-sm font-medium text-amber-900">
+                Se enviará un correo electrónico a <span className="font-bold">{pendingDescartadoLead?.leadEmail}</span>{" "}
+                notificando que ha sido marcado como inquilino abandonado.
               </p>
             </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium">
-                Se cambiará el estado de {selectedLeadIds.length} lead(s) a:{" "}
-                <span className="font-bold text-blue-600">{pendingBulkStatus}</span>
-              </p>
-            </div>
-
-            <div className="max-h-96 overflow-y-auto border rounded-lg">
-              <div className="divide-y">
-                {selectedLeadIds.map((leadId) => {
-                  const lead = leads.find((l) => l.id === leadId)
-                  if (!lead) return null
-
-                  return (
-                    <div key={leadId} className="p-3 hover:bg-gray-50 flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        <Checkbox checked={true} onCheckedChange={() => toggleLeadInConfirmation(leadId)} />
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{lead.Nombre || "Sin nombre"}</p>
-                          <p className="text-xs text-gray-500">{lead.Correo}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {lead.Estado || "Sin estado"}
-                          </Badge>
-                          <span className="text-gray-400">→</span>
-                          <Badge className="text-xs bg-blue-100 text-blue-700">{pendingBulkStatus}</Badge>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {selectedLeadIds.length === 0 && (
-              <p className="text-sm text-amber-600 text-center py-4">
-                No hay leads seleccionados. Por favor, seleccione al menos un lead.
-              </p>
-            )}
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setBulkConfirmationOpen(false)
-                  setPendingBulkStatus(null)
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={executeBulkStatusChange}
-                disabled={selectedLeadIds.length === 0}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Confirmar Cambio
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground">¿Desea continuar con esta acción?</p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 bg-transparent"
+              onClick={() => {
+                setIsFirstDescartadoConfirmOpen(false)
+                setPendingDescartadoLead(null)
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button className="flex-1 bg-amber-600 hover:bg-amber-700" onClick={handleFirstDescartadoConfirm}>
+              Continuar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
-      {/* Dialog open={isApprovalDialogOpen} ... has been moved to LeadApproveWrapper */}
+      <Dialog open={isFirstDescartadoConfirmOpen} onOpenChange={setIsFirstDescartadoConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertCircle className="h-5 w-5" />
+              Confirmación de Descarte
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm font-medium text-amber-900">
+                Se enviará un correo electrónico a <span className="font-bold">{pendingDescartadoLead?.leadEmail}</span>{" "}
+                notificando que ha sido marcado como inquilino abandonado.
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground">¿Desea continuar con esta acción?</p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 bg-transparent"
+              onClick={() => {
+                setIsFirstDescartadoConfirmOpen(false)
+                setPendingDescartadoLead(null)
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button className="flex-1 hover:bg-amber-700 bg-popover-foreground" onClick={handleFirstDescartadoConfirm}>
+              Continuar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isSecondDescartadoConfirmOpen} onOpenChange={setIsSecondDescartadoConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <XCircle className="h-5 w-5" />
+              Confirmación Final
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm font-medium text-red-900">
+                Esta es la confirmación final. El lead será marcado como <span className="font-bold">Descartado</span> y
+                se enviará el correo de notificación.
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground">¿Está completamente seguro de que desea proceder?</p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 bg-transparent"
+              onClick={() => {
+                setIsSecondDescartadoConfirmOpen(false)
+                setPendingDescartadoLead(null)
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button className="flex-1 bg-red-600 hover:bg-red-700" onClick={executeDescartadoStatusChange}>
+              Confirmar y Enviar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
