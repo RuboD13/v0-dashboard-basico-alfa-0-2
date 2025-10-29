@@ -989,15 +989,8 @@ export default function LeadsPage() {
 
   return (
     <div className="flex h-screen bg-background">
-     
-      {/* Changed from p-8 */}
-      {/* Sidebar and other layout elements would go here if present */}
       <main className="flex-1 overflow-auto">
-        
-        {/* Changed from p-8 */}
         <div className="p-6">
-          
-          {/* Changed from p-8 */}
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -1009,10 +1002,9 @@ export default function LeadsPage() {
               Nuevo Lead
             </Button>
           </div>
+
           {/* Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-            
-            {/* Added mt-8 */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
@@ -1054,10 +1046,9 @@ export default function LeadsPage() {
               </CardContent>
             </Card>
           </div>
+
           {/* Updated section for Active Advertisements */}
           <div className="mt-8 space-y-2">
-            
-            {/* Added mt-8 */}
             <div className="flex items-center gap-1.5">
               <Home className="h-4 w-4 text-primary" />
               <h3 className="text-base font-semibold">Anuncios Activos</h3>
