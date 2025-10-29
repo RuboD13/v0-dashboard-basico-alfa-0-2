@@ -1011,7 +1011,7 @@ export default function LeadsPage() {
           </div>
           {/* Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-            {" "}
+            
             {/* Added mt-8 */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1056,7 +1056,7 @@ export default function LeadsPage() {
           </div>
           {/* Updated section for Active Advertisements */}
           <div className="mt-8 space-y-2">
-            {" "}
+            
             {/* Added mt-8 */}
             <div className="flex items-center gap-1.5">
               <Home className="h-4 w-4 text-primary" />
@@ -1150,7 +1150,7 @@ export default function LeadsPage() {
           </div>
           {/* Filters */}
           <div className="mt-8 flex flex-col sm:flex-row gap-4">
-            {" "}
+            
             {/* Added mt-8 */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -3582,12 +3582,12 @@ export default function LeadsPage() {
                               day: "numeric",
                               month: "long",
                               year: "numeric",
-                            })}{" "}
-                            a las{" "}
+                            })}
+                            a las
                             {new Date(selectedLead.created_at).toLocaleTimeString("es-ES", {
                               hour: "2-digit",
                               minute: "2-digit",
-                            })}{" "}
+                            })}
                           </div>
                           {(() => {
                             const lastComm = getLastCommunication()
@@ -4088,7 +4088,7 @@ export default function LeadsPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              ¿Estás seguro de que quieres reactivar el anuncio{" "}
+              ¿Estás seguro de que quieres reactivar el anuncio
               <span className="font-semibold text-foreground">{advertisementToReactivate?.Referencia}</span>?
             </p>
             {advertisementToReactivate && (
@@ -4401,7 +4401,7 @@ export default function LeadsPage() {
 
             <div className="space-y-2">
               <p className="text-sm font-medium">
-                Se cambiará el estado de {selectedLeadIds.length} lead(s) a:{" "}
+                Se cambiará el estado de {selectedLeadIds.length} lead(s) a:
                 <span className="font-bold text-blue-600">{pendingBulkStatus}</span>
               </p>
             </div>
