@@ -954,7 +954,7 @@ export default function LeadsPage() {
     } else {
       setSelectedLeadIds(filteredLeads.map((lead) => lead.id))
     }
-  }
+  };
 
   if (loading || inmobiliariaLoading) {
     return (
