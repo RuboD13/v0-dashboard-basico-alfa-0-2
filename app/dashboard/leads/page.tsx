@@ -1309,42 +1309,72 @@ export default function LeadsPage() {
                                       <h3 className="font-semibold text-sm truncate">{lead.Nombre || "Sin nombre"}</h3>
 
                                       <div className="flex items-center gap-1.5">
-                                        {lead.Estado === "Aceptado" && (
-                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
-                                            <span className="text-xs font-semibold text-emerald-800">✓ Aprobado</span>
-                                            <div className="h-3 w-px bg-emerald-400" />
-                                            <div className="flex items-center gap-0.5">
-                                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                              <span className="text-xs font-semibold text-emerald-700">
-                                                {completionPercentage}%
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )}
-                                        {lead.Estado !== "Aceptado" && isDataComplete && (
-                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
-                                            <span className="text-xs font-semibold text-green-800">✓ Completo</span>
-                                            <div className="h-3 w-px bg-green-400" />
-                                            <div className="flex items-center gap-0.5">
-                                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                              <span className="text-xs font-semibold text-green-700">
-                                                {completionPercentage}%
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )}
-                                        {lead.Estado !== "Aceptado" && !isDataComplete && (
-                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
-                                            <span className="text-xs font-semibold text-amber-800">Incompleto</span>
-                                            <div className="h-3 w-px bg-amber-400" />
-                                            <div className="flex items-center gap-0.5">
-                                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                              <span className="text-xs font-semibold text-amber-700">
-                                                {completionPercentage}%
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )}
+                                        {(() => {
+                                          const statusColors = getStatusColors(lead.Estado)
+                                          const showEstadoBadge =
+                                            lead.Estado &&
+                                            lead.Estado !== "Datos Incompletos" &&
+                                            lead.Estado !== "Completo"
+
+                                          if (showEstadoBadge) {
+                                            return (
+                                              <div
+                                                className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border"
+                                                style={{
+                                                  backgroundColor: statusColors.bg,
+                                                  borderColor: statusColors.border,
+                                                }}
+                                              >
+                                                <span
+                                                  className="text-xs font-semibold"
+                                                  style={{ color: statusColors.text }}
+                                                >
+                                                  {lead.Estado === "Aceptado" ? "✓ " : ""}
+                                                  {statusColors.label}
+                                                </span>
+                                                <div
+                                                  className="h-3 w-px"
+                                                  style={{ backgroundColor: statusColors.border }}
+                                                />
+                                                <div className="flex items-center gap-0.5">
+                                                  <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                                  <span
+                                                    className="text-xs font-semibold"
+                                                    style={{ color: statusColors.text }}
+                                                  >
+                                                    {completionPercentage}%
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )
+                                          } else if (isDataComplete) {
+                                            return (
+                                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
+                                                <span className="text-xs font-semibold text-green-800">✓ Completo</span>
+                                                <div className="h-3 w-px bg-green-400" />
+                                                <div className="flex items-center gap-0.5">
+                                                  <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                                  <span className="text-xs font-semibold text-green-700">
+                                                    {completionPercentage}%
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )
+                                          } else {
+                                            return (
+                                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
+                                                <span className="text-xs font-semibold text-amber-800">Incompleto</span>
+                                                <div className="h-3 w-px bg-amber-400" />
+                                                <div className="flex items-center gap-0.5">
+                                                  <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                                  <span className="text-xs font-semibold text-amber-700">
+                                                    {completionPercentage}%
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )
+                                          }
+                                        })()}
                                       </div>
                                     </div>
 
@@ -1587,42 +1617,72 @@ export default function LeadsPage() {
                                     <h3 className="font-semibold text-sm truncate">{lead.Nombre || "Sin nombre"}</h3>
 
                                     <div className="flex items-center gap-1.5">
-                                      {lead.Estado === "Aceptado" && (
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
-                                          <span className="text-xs font-semibold text-emerald-800">✓ Aprobado</span>
-                                          <div className="h-3 w-px bg-emerald-400" />
-                                          <div className="flex items-center gap-0.5">
-                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                            <span className="text-xs font-semibold text-emerald-700">
-                                              {completionPercentage}%
-                                            </span>
-                                          </div>
-                                        </div>
-                                      )}
-                                      {lead.Estado !== "Aceptado" && isDataComplete && (
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
-                                          <span className="text-xs font-semibold text-green-800">✓ Completo</span>
-                                          <div className="h-3 w-px bg-green-400" />
-                                          <div className="flex items-center gap-0.5">
-                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                            <span className="text-xs font-semibold text-green-700">
-                                              {completionPercentage}%
-                                            </span>
-                                          </div>
-                                        </div>
-                                      )}
-                                      {lead.Estado !== "Aceptado" && !isDataComplete && (
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
-                                          <span className="text-xs font-semibold text-amber-800">Incompleto</span>
-                                          <div className="h-3 w-px bg-amber-400" />
-                                          <div className="flex items-center gap-0.5">
-                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                            <span className="text-xs font-semibold text-amber-700">
-                                              {completionPercentage}%
-                                            </span>
-                                          </div>
-                                        </div>
-                                      )}
+                                      {(() => {
+                                        const statusColors = getStatusColors(lead.Estado)
+                                        const showEstadoBadge =
+                                          lead.Estado &&
+                                          lead.Estado !== "Datos Incompletos" &&
+                                          lead.Estado !== "Completo"
+
+                                        if (showEstadoBadge) {
+                                          return (
+                                            <div
+                                              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border"
+                                              style={{
+                                                backgroundColor: statusColors.bg,
+                                                borderColor: statusColors.border,
+                                              }}
+                                            >
+                                              <span
+                                                className="text-xs font-semibold"
+                                                style={{ color: statusColors.text }}
+                                              >
+                                                {lead.Estado === "Aceptado" ? "✓ " : ""}
+                                                {statusColors.label}
+                                              </span>
+                                              <div
+                                                className="h-3 w-px"
+                                                style={{ backgroundColor: statusColors.border }}
+                                              />
+                                              <div className="flex items-center gap-0.5">
+                                                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                                <span
+                                                  className="text-xs font-semibold"
+                                                  style={{ color: statusColors.text }}
+                                                >
+                                                  {completionPercentage}%
+                                                </span>
+                                              </div>
+                                            </div>
+                                          )
+                                        } else if (isDataComplete) {
+                                          return (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
+                                              <span className="text-xs font-semibold text-green-800">✓ Completo</span>
+                                              <div className="h-3 w-px bg-green-400" />
+                                              <div className="flex items-center gap-0.5">
+                                                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                                <span className="text-xs font-semibold text-green-700">
+                                                  {completionPercentage}%
+                                                </span>
+                                              </div>
+                                            </div>
+                                          )
+                                        } else {
+                                          return (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
+                                              <span className="text-xs font-semibold text-amber-800">Incompleto</span>
+                                              <div className="h-3 w-px bg-amber-400" />
+                                              <div className="flex items-center gap-0.5">
+                                                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                                <span className="text-xs font-semibold text-amber-700">
+                                                  {completionPercentage}%
+                                                </span>
+                                              </div>
+                                            </div>
+                                          )
+                                        }
+                                      })()}
                                     </div>
                                   </div>
 
