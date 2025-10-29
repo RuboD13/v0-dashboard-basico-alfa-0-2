@@ -78,8 +78,6 @@ interface AnuncioCard {
   incompletosAlto?: boolean
   necesidadAval?: boolean
   Fecha_Activacion_Programada?: string | null // Added for scheduled activation
-  // Stats modal specific fields for chart data
-  allLeads?: any[]
 }
 
 interface CreationStep {
@@ -163,11 +161,6 @@ export default function AnunciosPage() {
   })
 
   const [isReferenciaEditable, setIsReferenciaEditable] = useState(false)
-
-  const [timeframe, setTimeframe] = useState<"1day" | "7days" | "1month">("7days")
-  const [filteredLeadsByStatus, setFilteredLeadsByStatus] = useState<string | null>(null)
-  const [leadsForSelectedStatus, setLeadsForSelectedStatus] = useState<any[]>([])
-  const [loadingStatusLeads, setLoadingStatusLeads] = useState(false)
 
   const { inmobiliariaId, loading: inmobiliariaLoading } = useInmobiliaria()
 
@@ -518,7 +511,6 @@ export default function AnunciosPage() {
           sparklineData,
           ejecuciones,
           consumoMes: ejecuciones,
-          allLeads: allLeads || [], // Store all leads for stats modal
         })
 
         totalLeadsSum += leadsTotales
@@ -856,29 +848,15 @@ export default function AnunciosPage() {
   const handleShowStats = async (anuncio: AnuncioCard) => {
     console.log(`[v0] Loading statistics for anuncio ${anuncio.id}`)
 
-    // Fetch all leads for this anuncio to calculate stats
-    const { data: allLeads, error } = await supabase
-      .from("Clientes")
-      .select("id, created_at, Estado, Correo, Nombre, Telefono, Ingresos") // Added fields for lead details
-      .ilike("Inmueble", anuncio.referencia)
-
-    if (error) {
-      console.log("[v0] Error fetching leads for stats:", error)
+    // Populate dummy stats for demonstration
+    const dummyStats = {
+      rebotesAltos: Math.random() > 0.5,
+      incompletosAlto: Math.random() > 0.7,
+      necesidadAval: Math.random() > 0.3,
     }
 
-    // Calculate dynamic stats
-    const datosCompletosCount = allLeads?.filter((lead) => lead.Estado === "Datos Completos").length || 0
-    const tasaConversion = anuncio.leadsTotales > 0 ? (datosCompletosCount / anuncio.leadsTotales) * 100 : 0
-
-    setSelectedAnuncioForStats({
-      ...anuncio,
-      datosCompletos: datosCompletosCount,
-      porcentajeCompletos: tasaConversion,
-      allLeads: allLeads || [], // Add allLeads to the state
-    })
+    setSelectedAnuncioForStats({ ...anuncio, ...dummyStats })
     setShowStatsModal(true)
-    setFilteredLeadsByStatus(null)
-    setLeadsForSelectedStatus([])
   }
 
   // New functions for managing FAQs
@@ -901,41 +879,6 @@ export default function AnunciosPage() {
       ...prev,
       faqs: prev.faqs.map((faq, i) => (i === index ? { ...faq, [field]: value } : faq)),
     }))
-  }
-
-  const handleStatusCardClick = async (estado: string) => {
-    if (!selectedAnuncioForStats) return
-
-    if (filteredLeadsByStatus === estado) {
-      // Toggle off if clicking the same status
-      setFilteredLeadsByStatus(null)
-      setLeadsForSelectedStatus([])
-      return
-    }
-
-    setFilteredLeadsByStatus(estado)
-    setLoadingStatusLeads(true)
-
-    try {
-      const { data, error } = await supabase
-        .from("Clientes")
-        .select("Nombre, Correo, Telefono")
-        .ilike("Inmueble", selectedAnuncioForStats.referencia)
-        .eq("Estado", estado)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.log("[v0] Error fetching leads by status:", error)
-        setLeadsForSelectedStatus([])
-      } else {
-        setLeadsForSelectedStatus(data || [])
-      }
-    } catch (err) {
-      console.log("[v0] Error in handleStatusCardClick:", err)
-      setLeadsForSelectedStatus([])
-    } finally {
-      setLoadingStatusLeads(false)
-    }
   }
 
   const handleCrearAnuncio = async () => {
@@ -1115,91 +1058,6 @@ export default function AnunciosPage() {
     const h = Math.floor(totalMinutes / 60)
     const m = totalMinutes % 60
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}h`
-  }
-
-  const getChartDataForTimeframe = (
-    allLeads: any[],
-    timeframe: "1day" | "7days" | "1month",
-  ): { data: number[]; labels: string[] } => {
-    const now = new Date()
-
-    if (timeframe === "1day") {
-      // Last 24 hours, hourly breakdown
-      const hourlyData: number[] = []
-      const hourlyLabels: string[] = []
-
-      for (let i = 23; i >= 0; i--) {
-        const hourStart = new Date(now.getTime() - i * 60 * 60 * 1000)
-        hourStart.setMinutes(0, 0, 0)
-        const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000)
-
-        const leadsInHour =
-          allLeads?.filter((lead) => {
-            const createdAt = new Date(lead.created_at)
-            return createdAt >= hourStart && createdAt < hourEnd
-          }).length || 0
-
-        hourlyData.push(leadsInHour)
-        // Format hour in 24h format (e.g., "14:00")
-        hourlyLabels.push(
-          hourStart.toLocaleTimeString("es-ES", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }),
-        )
-      }
-
-      return { data: hourlyData, labels: hourlyLabels }
-    } else if (timeframe === "7days") {
-      // Last 7 days, daily breakdown
-      const dailyData: number[] = []
-      const dailyLabels: string[] = []
-
-      for (let i = 6; i >= 0; i--) {
-        const dayStart = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-        dayStart.setHours(0, 0, 0, 0)
-        const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
-
-        const leadsInDay =
-          allLeads?.filter((lead) => {
-            const createdAt = new Date(lead.created_at)
-            return createdAt >= dayStart && createdAt < dayEnd
-          }).length || 0
-
-        dailyData.push(leadsInDay)
-        dailyLabels.push(`D${i === 0 ? "Hoy" : 7 - i}`)
-      }
-
-      return { data: dailyData, labels: dailyLabels }
-    } else {
-      // Last 4 weeks, weekly breakdown
-      const weeklyData: number[] = []
-      const weeklyLabels: string[] = []
-
-      for (let i = 3; i >= 0; i--) {
-        const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000)
-        weekStart.setHours(0, 0, 0, 0)
-        const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000)
-
-        const leadsInWeek =
-          allLeads?.filter((lead) => {
-            const createdAt = new Date(lead.created_at)
-            return createdAt >= weekStart && createdAt < weekEnd
-          }).length || 0
-
-        weeklyData.push(leadsInWeek)
-
-        // Get week number and month name
-        const weekNumber = Math.ceil(weekStart.getDate() / 7)
-        const monthName = weekStart.toLocaleDateString("es-ES", { month: "long" })
-        const weekLabel = i === 0 ? "Esta semana" : `${weekNumber}ª sem. ${monthName}`
-
-        weeklyLabels.push(weekLabel)
-      }
-
-      return { data: weeklyData, labels: weeklyLabels }
-    }
   }
 
   const handleScheduleActivation = async (anuncioId: string) => {
@@ -2382,184 +2240,53 @@ export default function AnunciosPage() {
                       <div className="text-sm text-purple-800">Tasa Conversión</div>
                     </div>
                     <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">{selectedAnuncioForStats.ejecuciones}</div>
-                      <div className="text-sm text-orange-800">Ejecuciones</div>
+                      <div className="text-2xl font-bold text-orange-600">{selectedAnuncioForStats.healthScore}</div>
+                      <div className="text-sm text-orange-800">Health Score</div>
                     </div>
                   </div>
 
-                  {/* CHANGE START */}
+                  {/* Tendencia Semanal */}
                   <div className="space-y-3">
-                    <h4 className="font-semibold">Preparados para Fase de Visita</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {(() => {
-                        const aceptadosCount =
-                          selectedAnuncioForStats.allLeads?.filter((lead) => lead.Estado === "Aceptado").length || 0
-                        const visitaPropuestaCount =
-                          selectedAnuncioForStats.allLeads?.filter((lead) => lead.Estado === "Visita Propuesta")
-                            .length || 0
-                        const visitaCompletadaCount =
-                          selectedAnuncioForStats.allLeads?.filter((lead) => lead.Estado === "Visita Completada")
-                            .length || 0
-                        const descartadoCount =
-                          selectedAnuncioForStats.allLeads?.filter((lead) => lead.Estado === "Descartado").length || 0
-
-                        return (
-                          <>
-                            {/* Candidatos Aprobados */}
-                            <button
-                              onClick={() => handleStatusCardClick("Aceptado")}
-                              className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
-                                filteredLeadsByStatus === "Aceptado"
-                                  ? "bg-emerald-100 border-emerald-500"
-                                  : "bg-emerald-50 border-emerald-200"
-                              }`}
-                            >
-                              <div className="text-xl font-bold text-emerald-600">{aceptadosCount}</div>
-                              <div className="text-xs text-emerald-800">Candidatos Aprobados</div>
-                            </button>
-
-                            {/* Visita Propuesta */}
-                            <button
-                              onClick={() => handleStatusCardClick("Visita Propuesta")}
-                              className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
-                                filteredLeadsByStatus === "Visita Propuesta"
-                                  ? "bg-blue-100 border-blue-500"
-                                  : "bg-blue-50 border-blue-200"
-                              }`}
-                            >
-                              <div className="text-xl font-bold text-blue-600">{visitaPropuestaCount}</div>
-                              <div className="text-xs text-blue-800">Visita Propuesta</div>
-                            </button>
-
-                            {/* Visita Completada */}
-                            <button
-                              onClick={() => handleStatusCardClick("Visita Completada")}
-                              className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
-                                filteredLeadsByStatus === "Visita Completada"
-                                  ? "bg-purple-100 border-purple-500"
-                                  : "bg-purple-50 border-purple-200"
-                              }`}
-                            >
-                              <div className="text-xl font-bold text-purple-600">{visitaCompletadaCount}</div>
-                              <div className="text-xs text-purple-800">Visita Completada</div>
-                            </button>
-
-                            {/* Descartados */}
-                            <button
-                              onClick={() => handleStatusCardClick("Descartado")}
-                              className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
-                                filteredLeadsByStatus === "Descartado"
-                                  ? "bg-gray-100 border-gray-500"
-                                  : "bg-gray-50 border-gray-200"
-                              }`}
-                            >
-                              <div className="text-lg font-bold text-gray-600">{descartadoCount}</div>
-                              <div className="text-xs text-gray-800">Descartados</div>
-                            </button>
-                          </>
-                        )
-                      })()}
-                    </div>
-                    {/* CHANGE END */}
-
-                    {filteredLeadsByStatus && (
-                      <div className="mt-4 p-4 bg-muted rounded-lg">
-                        <h5 className="text-sm font-semibold mb-3">Leads con estado: {filteredLeadsByStatus}</h5>
-                        {loadingStatusLeads ? (
-                          <div className="flex items-center justify-center py-4">
-                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                          </div>
-                        ) : leadsForSelectedStatus.length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-2">No hay leads con este estado</p>
-                        ) : (
-                          <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {leadsForSelectedStatus.map((lead, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center justify-between p-2 bg-background rounded border"
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{lead.Nombre}</p>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-xs text-muted-foreground truncate">{lead.Correo}</p>
-                                    {lead.Telefono && <p className="text-xs text-muted-foreground">{lead.Telefono}</p>}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">Tendencia de Leads</h4>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant={timeframe === "1day" ? "default" : "outline"}
-                          onClick={() => setTimeframe("1day")}
-                          className="h-7 text-xs"
-                        >
-                          1 día
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={timeframe === "7days" ? "default" : "outline"}
-                          onClick={() => setTimeframe("7days")}
-                          className="h-7 text-xs"
-                        >
-                          7 días
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={timeframe === "1month" ? "default" : "outline"}
-                          onClick={() => setTimeframe("1month")}
-                          className="h-7 text-xs"
-                        >
-                          1 mes
-                        </Button>
-                      </div>
-                    </div>
+                    <h4 className="font-semibold">Tendencia de Leads (7 días)</h4>
                     <div className="bg-muted p-4 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-muted-foreground">
-                          {timeframe === "1day"
-                            ? "Últimas 24 horas"
-                            : timeframe === "7days"
-                              ? "Últimos 7 días"
-                              : "Últimas 4 semanas"}
-                        </span>
+                        <span className="text-sm text-muted-foreground">Actividad diaria</span>
                         <div className="text-green-600">
-                          <Sparkline
-                            data={getChartDataForTimeframe(selectedAnuncioForStats.allLeads || [], timeframe).data}
-                          />
+                          <Sparkline data={selectedAnuncioForStats.sparklineData} />
                         </div>
                       </div>
-                      <div
-                        className={`grid gap-1 text-xs ${
-                          timeframe === "1day" ? "grid-cols-12" : timeframe === "7days" ? "grid-cols-7" : "grid-cols-4"
-                        }`}
-                      >
-                        {(() => {
-                          const { data, labels } = getChartDataForTimeframe(
-                            selectedAnuncioForStats.allLeads || [],
-                            timeframe,
-                          )
-                          // For 24 hours, show every 2 hours to avoid overcrowding
-                          const displayData = timeframe === "1day" ? data.filter((_, index) => index % 2 === 0) : data
-                          const displayLabels =
-                            timeframe === "1day" ? labels.filter((_, index) => index % 2 === 0) : labels
+                      <div className="grid grid-cols-7 gap-1 text-xs">
+                        {selectedAnuncioForStats.sparklineData.map((value, index) => (
+                          <div key={index} className="text-center">
+                            <div className="font-medium">{value}</div>
+                            <div className="text-muted-foreground">D{index + 1}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
-                          return displayData.map((value, index) => (
-                            <div key={index} className="text-center">
-                              <div className="font-medium">{value}</div>
-                              <div className="text-muted-foreground text-[10px] truncate">{displayLabels[index]}</div>
-                            </div>
-                          ))
-                        })()}
+                  {/* Análisis de Calidad */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">Análisis de Calidad</h4>
+                    <div className="grid gap-3">
+                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="text-sm">Rebotes de email</span>
+                        <Badge variant={selectedAnuncioForStats.rebotesAltos ? "destructive" : "secondary"}>
+                          {selectedAnuncioForStats.rebotesAltos ? "Alto" : "Normal"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="text-sm">Datos incompletos</span>
+                        <Badge variant={selectedAnuncioForStats.incompletosAlto ? "destructive" : "secondary"}>
+                          {selectedAnuncioForStats.incompletosAlto ? "Alto" : "Normal"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="text-sm">Necesidad de aval</span>
+                        <Badge variant={selectedAnuncioForStats.necesidadAval ? "destructive" : "secondary"}>
+                          {selectedAnuncioForStats.necesidadAval ? "Requerido" : "No requerido"}
+                        </Badge>
                       </div>
                     </div>
                   </div>

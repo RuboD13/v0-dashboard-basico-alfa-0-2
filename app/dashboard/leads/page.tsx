@@ -52,7 +52,6 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
 )
 
 type Lead = {
-  id: string // Added id field
   idc: number
   IDC?: number
   created_at?: string
@@ -96,6 +95,7 @@ type Lead = {
   "Correo 3"?: string
   "Telefono 3"?: string
   "Codigo_Postal 3"?: string
+  "Pais 3"?: string
   tipo3?: string
   Persona_4?: string
   "Tipo_Documento 4"?: string
@@ -706,23 +706,6 @@ export default function LeadsPage() {
     return { percentage, filledFields, totalFields }
   }
 
-  const isAvalDataComplete = (lead: Lead): boolean => {
-    if (!lead.Persona_4) return false
-
-    const requiredFields = [
-      lead.Persona_4,
-      lead["Tipo_Documento 4"],
-      lead.Documento_4,
-      lead["Pais 4"],
-      lead.Ingresos_4,
-      lead["Correo 4"],
-      lead["Telefono 4"],
-      lead["Codigo_Postal 4"],
-    ]
-
-    return requiredFields.every((field) => field !== null && field !== undefined && field !== "")
-  }
-
   const countPersonas = (lead: Lead) => {
     let count = 1 // Always at least Persona 1
     if (lead.Persona_2) count++
@@ -1289,14 +1272,9 @@ export default function LeadsPage() {
                                 ? "opacity-40 bg-gray-50 border-gray-300"
                                 : isAceptado
                                   ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
-                                  : // Add special styling for "Pedir Aval" status
-                                    lead.Estado === "Pedir Aval"
-                                    ? isAvalDataComplete(lead)
-                                      ? "border-green-200 bg-green-50/30 hover:bg-green-50/50" // Green when aval data is complete
-                                      : "border-purple-300 bg-purple-50/30 hover:bg-purple-50/50" // Purple when aval data is incomplete
-                                    : isDataComplete
-                                      ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
-                                      : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
+                                  : isDataComplete
+                                    ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
+                                    : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                             }`}
                             onClick={() => openLeadDetail(lead)}
                           >
@@ -1602,14 +1580,9 @@ export default function LeadsPage() {
                               ? "opacity-40 bg-gray-50 border-gray-300"
                               : isAceptado
                                 ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
-                                : // Add special styling for "Pedir Aval" status
-                                  lead.Estado === "Pedir Aval"
-                                  ? isAvalDataComplete(lead)
-                                    ? "border-green-200 bg-green-50/30 hover:bg-green-50/50" // Green when aval data is complete
-                                    : "border-purple-300 bg-purple-50/30 hover:bg-purple-50/50" // Purple when aval data is incomplete
-                                  : isDataComplete
-                                    ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
-                                    : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
+                                : isDataComplete
+                                  ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
+                                  : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
                           }`}
                           onClick={() => openLeadDetail(lead)}
                         >
@@ -1810,7 +1783,7 @@ export default function LeadsPage() {
                                             <MoreVertical className="h-3 w-3" />
                                           </Button>
                                         </DropdownMenuTrigger>
-                                      </Tooltip>
+                                      </TooltipTrigger>
                                       <TooltipContent>
                                         <p>Cambiar estado</p>
                                       </TooltipContent>
@@ -1884,8 +1857,8 @@ export default function LeadsPage() {
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+      </main>
       {/* Lead Detail Dialog */}
       {selectedLead && (
         <>
