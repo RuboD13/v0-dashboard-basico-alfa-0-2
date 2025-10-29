@@ -989,14 +989,14 @@ export default function LeadsPage() {
 
   return (
     <div className="flex h-screen bg-background">
-      {" "}
+     
       {/* Changed from p-8 */}
       {/* Sidebar and other layout elements would go here if present */}
       <main className="flex-1 overflow-auto">
-        {" "}
+        
         {/* Changed from p-8 */}
         <div className="p-6">
-          {" "}
+          
           {/* Changed from p-8 */}
           {/* Header */}
           <div className="flex items-center justify-between">
