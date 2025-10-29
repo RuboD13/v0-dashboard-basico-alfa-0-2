@@ -124,4 +124,15 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Adding Radix scroll area viewport styles to hide scrollbars */
+  [data-radix-scroll-area-viewport] {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+    display: none;
+  }
 }
