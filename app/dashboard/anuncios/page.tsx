@@ -43,6 +43,7 @@ import {
   Lock,
   LockOpen,
   AlertCircle,
+  Trash2,
 } from "lucide-react"
 import { getPlanData, formatPlanValue } from "@/lib/plan-data"
 
@@ -152,6 +153,8 @@ export default function AnunciosPage() {
   const [selectedAnuncioForStats, setSelectedAnuncioForStats] = useState<AnuncioCard | null>(null)
   const [showArchiveDialog, setShowArchiveDialog] = useState(false)
   const [archivingAnuncio, setArchivingAnuncio] = useState<AnuncioCard | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deletingAnuncio, setDeletingAnuncio] = useState<AnuncioCard | null>(null)
   const [expandedLeadsAnuncio, setExpandedLeadsAnuncio] = useState<string | null>(null)
   const [completosLeads, setCompletosLeads] = useState<any[]>([])
   const [loadingCompletos, setLoadingCompletos] = useState(false)
@@ -205,6 +208,43 @@ export default function AnunciosPage() {
       toast({
         title: "Error",
         description: "Error al archivar el anuncio",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleOpenDeleteDialog = (anuncio: AnuncioCard) => {
+    setDeletingAnuncio(anuncio)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteAnuncio = async () => {
+    if (!deletingAnuncio) return
+
+    try {
+      const { error } = await supabase.from("Anuncios").delete().eq("ida", deletingAnuncio.id)
+
+      if (error) {
+        console.log("[v0] Error deleting anuncio:", error)
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar el anuncio",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Éxito",
+          description: "Anuncio eliminado permanentemente",
+        })
+        setShowDeleteDialog(false)
+        setDeletingAnuncio(null)
+        await fetchAnuncios() // Refresh the list
+      }
+    } catch (err) {
+      console.log("[v0] Error in handleDeleteAnuncio:", err)
+      toast({
+        title: "Error",
+        description: "Error al eliminar el anuncio",
         variant: "destructive",
       })
     }
@@ -341,17 +381,21 @@ export default function AnunciosPage() {
         console.log("[v0] User is admin:", isAdmin)
       }
 
+      if (!inmobiliariaId) {
+        console.log("[v0] No inmobiliariaId available, cannot fetch anuncios")
+        setAnunciosCards([])
+        setTotalAnuncios(0)
+        setLoading(false)
+        return
+      }
+
+      console.log("[v0] Filtering anuncios by agency IDI (inmobiliariaId):", inmobiliariaId)
+
       let query = supabase
         .from("Anuncios")
         .select("ida, Referencia, Direccion, Precio, Portal, Descripcion, Activacion, Foto_Url, created_at")
+        .eq("usuario", inmobiliariaId) // Always filter by the logged-in agency's IDI
         .order("created_at", { ascending: false })
-
-      if (inmobiliariaId && !isAdmin) {
-        console.log("[v0] Filtering anuncios by inmobiliaria:", inmobiliariaId)
-        query = query.eq("usuario", inmobiliariaId)
-      } else if (isAdmin) {
-        console.log("[v0] Admin user - fetching ALL anuncios")
-      }
 
       // Filter out archived ads unless the user is an admin
       if (!isAdmin) {
@@ -366,7 +410,7 @@ export default function AnunciosPage() {
         return
       }
 
-      console.log("[v0] Anuncios fetched:", anuncios?.length || 0)
+      console.log("[v0] Anuncios fetched for agency IDI", inmobiliariaId, ":", anuncios?.length || 0)
 
       if (!anuncios || anuncios.length === 0) {
         setAnunciosCards([])
@@ -903,6 +947,7 @@ export default function AnunciosPage() {
 
     setCreatingAnuncio(true)
     console.log("[v0] Creating new anuncio with data:", creationStep.data)
+    console.log("[v0] Assigning agency IDI to anuncio:", inmobiliariaId)
 
     try {
       const newAnuncio = {
@@ -912,10 +957,12 @@ export default function AnunciosPage() {
         Descripcion: creationStep.data.descripcion,
         Precio: Number.parseFloat(creationStep.data.precio) || 0,
         Activacion: creationStep.data.activacion,
-        usuario: inmobiliariaId, // Link to inmobiliaria
+        usuario: inmobiliariaId, // Assigns the logged-in agency's IDI to this anuncio
         Foto_Url: "", // Empty for now
         // Fecha_Activacion_Programada: null, // Ensure it's null for new announcements
       }
+
+      console.log("[v0] New anuncio object with agency IDI:", newAnuncio)
 
       const { data, error } = await supabase.from("Anuncios").insert([newAnuncio]).select()
 
@@ -929,7 +976,7 @@ export default function AnunciosPage() {
         return
       }
 
-      console.log("[v0] Anuncio created successfully:", data)
+      console.log("[v0] Anuncio created successfully with agency IDI:", data)
 
       toast({
         title: "Éxito",
@@ -1564,13 +1611,23 @@ export default function AnunciosPage() {
                                     <Eye className="h-3.5 w-3.5 mr-2" />
                                     Ver Estadísticas
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleOpenArchiveDialog(anuncio)}
-                                    className="text-orange-600"
-                                  >
-                                    <Archive className="h-3.5 w-3.5 mr-2" />
-                                    Archivar
-                                  </DropdownMenuItem>
+                                  {anuncio.estado === "archivado" ? (
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenDeleteDialog(anuncio)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                      Eliminar
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenArchiveDialog(anuncio)}
+                                      className="text-orange-600"
+                                    >
+                                      <Archive className="h-3.5 w-3.5 mr-2" />
+                                      Archivar
+                                    </DropdownMenuItem>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -2436,6 +2493,7 @@ export default function AnunciosPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Archive Dialog */}
         <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
           <DialogContent>
             <DialogHeader>
@@ -2466,6 +2524,41 @@ export default function AnunciosPage() {
                   Archivar
                 </Button>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-red-600 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                Eliminar Anuncio Permanentemente
+              </DialogTitle>
+              <DialogDescription>
+                <div className="space-y-3">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="text-red-800 font-semibold mb-1">⚠️ ADVERTENCIA: Esta acción es irreversible</div>
+                    <div className="text-red-700 text-sm">
+                      El anuncio "{deletingAnuncio?.referencia}" será eliminado permanentemente de la base de datos.
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Se perderán todos los datos asociados a este anuncio, incluyendo estadísticas, información detallada
+                    y FAQs.
+                  </div>
+                  <div className="text-sm font-medium">¿Estás seguro de que deseas continuar?</div>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleDeleteAnuncio} variant="destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar Permanentemente
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
