@@ -391,13 +391,16 @@ export default function AnunciosPage() {
 
       console.log("[v0] Filtering anuncios by agency IDI (inmobiliariaId):", inmobiliariaId)
 
-      const query = supabase
+      let query = supabase
         .from("Anuncios")
         .select("ida, Referencia, Direccion, Precio, Portal, Descripcion, Activacion, Foto_Url, created_at")
         .eq("usuario", inmobiliariaId) // Always filter by the logged-in agency's IDI
         .order("created_at", { ascending: false })
 
-      console.log("[v0] Query built - fetching ALL anuncios (including archived) for agency:", inmobiliariaId)
+      // Filter out archived ads unless the user is an admin
+      if (!isAdmin) {
+        query = query.neq("Activacion", "Archivado")
+      }
 
       const { data: anuncios, error: anunciosErr } = await query
 
@@ -408,13 +411,6 @@ export default function AnunciosPage() {
       }
 
       console.log("[v0] Anuncios fetched for agency IDI", inmobiliariaId, ":", anuncios?.length || 0)
-
-      if (anuncios && anuncios.length > 0) {
-        console.log("[v0] Anuncios details:")
-        anuncios.forEach((a) => {
-          console.log(`  - ${a.Referencia}: Activacion="${a.Activacion}"`)
-        })
-      }
 
       if (!anuncios || anuncios.length === 0) {
         setAnunciosCards([])
