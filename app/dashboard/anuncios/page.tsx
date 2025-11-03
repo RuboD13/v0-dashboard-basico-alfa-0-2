@@ -391,16 +391,14 @@ export default function AnunciosPage() {
 
       console.log("[v0] Filtering anuncios by agency IDI (inmobiliariaId):", inmobiliariaId)
 
-      let query = supabase
+      const query = supabase
         .from("Anuncios")
         .select("ida, Referencia, Direccion, Precio, Portal, Descripcion, Activacion, Foto_Url, created_at")
         .eq("usuario", inmobiliariaId) // Always filter by the logged-in agency's IDI
         .order("created_at", { ascending: false })
 
-      // Filter out archived ads unless the user is an admin
-      if (!isAdmin) {
-        query = query.neq("Activacion", "Archivado")
-      }
+      // All users can now see their own archived anuncios
+      // The client-side filtering (filterEstado) handles showing/hiding them
 
       const { data: anuncios, error: anunciosErr } = await query
 
