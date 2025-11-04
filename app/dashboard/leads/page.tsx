@@ -96,7 +96,6 @@ type Lead = {
   "Correo 3"?: string
   "Telefono 3"?: string
   "Codigo_Postal 3"?: string
-  "Pais 3"?: string
   tipo3?: string
   Persona_4?: string
   "Tipo_Documento 4"?: string
@@ -210,6 +209,7 @@ export default function LeadsPage() {
   const [isBulkSelectionMode, setIsBulkSelectionMode] = useState(false)
   const [bulkConfirmationOpen, setBulkConfirmationOpen] = useState(false)
   const [pendingBulkStatus, setPendingBulkStatus] = useState<string | null>(null)
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
 
   useEffect(() => {
     if (!inmobiliariaLoading && inmobiliariaId !== null) {
@@ -307,10 +307,35 @@ export default function LeadsPage() {
         return
       }
 
+      const { data: activeProperties, error: propertiesError } = await supabase
+        .from("Anuncios")
+        .select("Referencia")
+        .eq("usuario", inmobiliariaId)
+        .in("Activacion", ["Activo", "Pausado"])
+
+      if (propertiesError) {
+        console.error("[v0] Error fetching active properties:", propertiesError)
+        throw propertiesError
+      }
+
+      // Extract property references
+      const activePropertyRefs = activeProperties?.map((prop) => prop.Referencia).filter(Boolean) || []
+
+      console.log("[v0] Active/Paused properties found:", activePropertyRefs.length)
+
+      // If no active properties, return empty leads
+      if (activePropertyRefs.length === 0) {
+        console.log("[v0] No active or paused properties found, returning empty leads")
+        setLeads([])
+        setLoading(false)
+        return
+      }
+
       const dataQuery = supabase
         .from("Clientes")
         .select("*")
         .eq("usuario", inmobiliariaId)
+        .in("Inmueble", activePropertyRefs)
         .order("created_at", { ascending: false })
 
       // Get leads data
@@ -1262,19 +1287,16 @@ export default function LeadsPage() {
                         const isDescartado = lead.Estado === "Descartado"
                         const isAceptado = lead.Estado === "Aceptado"
                         const { percentage: completionPercentage, totalFields } = calculateCompleteness(lead)
-                        const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
+                        const isDataComplete = completionPercentage >= 80
                         const personaCount = countPersonas(lead)
 
-                        // Add checkbox for individual selection
                         const isSelected = selectedLeadIds.includes(lead.id)
 
                         return (
                           <Card
                             key={lead.id}
                             className={`hover:shadow-md transition-all cursor-pointer ${
-                              isSelected // Highlight selected leads
-                                ? "ring-2 ring-primary ring-offset-2"
-                                : ""
+                              isSelected ? "ring-2 ring-primary ring-offset-2" : ""
                             } ${
                               isDescartado
                                 ? "opacity-40 bg-gray-50 border-gray-300"
@@ -1576,7 +1598,7 @@ export default function LeadsPage() {
                       const isDescartado = lead.Estado === "Descartado"
                       const isAceptado = lead.Estado === "Aceptado"
                       const { percentage: completionPercentage } = calculateCompleteness(lead)
-                      const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
+                      const isDataComplete = completionPercentage >= 80
                       const personaCount = countPersonas(lead)
                       const isSelected = selectedLeadIds.includes(lead.id)
 
@@ -1791,7 +1813,7 @@ export default function LeadsPage() {
                                             <MoreVertical className="h-3 w-3" />
                                           </Button>
                                         </DropdownMenuTrigger>
-                                      </TooltipTrigger>
+                                      </Tooltip>
                                       <TooltipContent>
                                         <p>Cambiar estado</p>
                                       </TooltipContent>
@@ -1865,8 +1887,8 @@ export default function LeadsPage() {
               )}
             </div>
           )}
-        </div>
-      </main>
+        </DialogContent>
+      </Dialog>
       {/* Lead Detail Dialog */}
       {selectedLead && (
         <>
@@ -3434,7 +3456,169 @@ export default function LeadsPage() {
                       </div>
                     )}
 
-                    {/* Evaluación */}
+                    {/* Documentos */}
+                    <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.25rem" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "1rem",
+                        }}
+                      >
+                        <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Documentos</h2>
+                        <button
+                          style={{
+                            padding: "0.25rem 0.75rem",
+                            fontSize: "0.75rem",
+                            backgroundColor: "#f3f4f6",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Gestionar
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.875rem" }}>DNI/NIE</span>
+                          <span
+                            style={{
+                              padding: "0.25rem 0.5rem",
+                              fontSize: "0.75rem",
+                              backgroundColor: "#fef3c7",
+                              color: "#92400e",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            Pendiente
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.875rem" }}>Just. Ingresos</span>
+                          <span
+                            style={{
+                              padding: "0.25rem 0.5rem",
+                              fontSize: "0.75rem",
+                              backgroundColor: "#fef3c7",
+                              color: "#92400e",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            Pendiente
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Comunicaciones */}
+                    <div
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        padding: "1.25rem",
+                        flex: 1,
+                        minHeight: "300px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "1rem",
+                        }}
+                      >
+                        <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Comunicaciones</h2>
+                        <button
+                          style={{
+                            padding: "0.25rem 0.75rem",
+                            fontSize: "0.75rem",
+                            backgroundColor: "#000",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Agregar
+                        </button>
+                      </div>
+
+                      {communications.length > 0 ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "0.75rem",
+                            maxHeight: "400px",
+                            overflowY: "auto",
+                          }}
+                        >
+                          {communications.map((comm) => (
+                            <div
+                              key={comm.id}
+                              onClick={() => openCommunicationDetail(comm)}
+                              style={{
+                                padding: "0.75rem",
+                                backgroundColor: "#f9fafb",
+                                borderRadius: "6px",
+                                border: "1px solid #e5e7eb",
+                                cursor: "pointer",
+                                transition: "all 0.2s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "#f3f4f6"
+                                e.currentTarget.style.borderColor = "#d1d5db"
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "#f9fafb"
+                                e.currentTarget.style.borderColor = "#e5e7eb"
+                              }}
+                            >
+                              <div style={{ fontSize: "0.75rem", fontWeight: "600", marginBottom: "0.25rem" }}>
+                                {comm.From || "Sin remitente"}
+                              </div>
+                              <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.5rem" }}>
+                                {comm.Subject || "Sin asunto"}
+                              </div>
+                              <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
+                                {new Date(comm.created_at).toLocaleDateString("es-ES")}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            height: "calc(100% - 3rem)",
+                            textAlign: "center",
+                          }}
+                        >
+                          <div style={{ fontSize: "3rem" }}>💬</div>
+                          <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>Sin comunicaciones</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Right Column */}
+                  <div
+                    style={{
+                      width: "280px",
+                      flexShrink: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1.25rem",
+                    }}
+                  >
+                    {/* Evaluation Section */}
                     <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.25rem" }}>
                       <h2 style={{ fontSize: "1.125rem", fontWeight: "600", marginBottom: "1.25rem" }}>Evaluación</h2>
 
@@ -3593,169 +3777,6 @@ export default function LeadsPage() {
                           })()}
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Right Column */}
-                  <div
-                    style={{
-                      width: "280px",
-                      flexShrink: 0,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "1.25rem",
-                    }}
-                  >
-                    {/* Documentos */}
-                    <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.25rem" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: "1rem",
-                        }}
-                      >
-                        <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Documentos</h2>
-                        <button
-                          style={{
-                            padding: "0.25rem 0.75rem",
-                            fontSize: "0.75rem",
-                            backgroundColor: "#f3f4f6",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Gestionar
-                        </button>
-                      </div>
-
-                      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "0.875rem" }}>DNI/NIE</span>
-                          <span
-                            style={{
-                              padding: "0.25rem 0.5rem",
-                              fontSize: "0.75rem",
-                              backgroundColor: "#fef3c7",
-                              color: "#92400e",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            Pendiente
-                          </span>
-                        </div>
-
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "0.875rem" }}>Just. Ingresos</span>
-                          <span
-                            style={{
-                              padding: "0.25rem 0.5rem",
-                              fontSize: "0.75rem",
-                              backgroundColor: "#fef3c7",
-                              color: "#92400e",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            Pendiente
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Comunicaciones */}
-                    <div
-                      style={{
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                        padding: "1.25rem",
-                        flex: 1,
-                        minHeight: "300px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: "1rem",
-                        }}
-                      >
-                        <h2 style={{ fontSize: "1rem", fontWeight: "600", margin: 0 }}>Comunicaciones</h2>
-                        <button
-                          style={{
-                            padding: "0.25rem 0.75rem",
-                            fontSize: "0.75rem",
-                            backgroundColor: "#000",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Agregar
-                        </button>
-                      </div>
-
-                      {communications.length > 0 ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "0.75rem",
-                            maxHeight: "400px",
-                            overflowY: "auto",
-                          }}
-                        >
-                          {communications.map((comm) => (
-                            <div
-                              key={comm.id}
-                              onClick={() => openCommunicationDetail(comm)}
-                              style={{
-                                padding: "0.75rem",
-                                backgroundColor: "#f9fafb",
-                                borderRadius: "6px",
-                                border: "1px solid #e5e7eb",
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = "#f3f4f6"
-                                e.currentTarget.style.borderColor = "#d1d5db"
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = "#f9fafb"
-                                e.currentTarget.style.borderColor = "#e5e7eb"
-                              }}
-                            >
-                              <div style={{ fontSize: "0.75rem", fontWeight: "600", marginBottom: "0.25rem" }}>
-                                {comm.From || "Sin remitente"}
-                              </div>
-                              <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.5rem" }}>
-                                {comm.Subject || "Sin asunto"}
-                              </div>
-                              <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
-                                {new Date(comm.created_at).toLocaleDateString("es-ES")}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            height: "calc(100% - 3rem)",
-                            textAlign: "center",
-                          }}
-                        >
-                          <div style={{ fontSize: "3rem" }}>💬</div>
-                          <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>Sin comunicaciones</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -4363,7 +4384,6 @@ export default function LeadsPage() {
           )}
         </DialogContent>
       </Dialog>
-      {/* Communication Detail Dialog */}
       <Dialog open={bulkConfirmationOpen} onOpenChange={setBulkConfirmationOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -4440,6 +4460,10 @@ export default function LeadsPage() {
             </div>
           </div>
         </DialogContent>
+      </Dialog>
+      {/* Communication Detail Dialog */}
+      <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
+        {/* ... (rest of the dialog content for approval, if any) */}
       </Dialog>
       {/* Dialog open={isApprovalDialogOpen} ... has been moved to LeadApproveWrapper */}
     </div>
