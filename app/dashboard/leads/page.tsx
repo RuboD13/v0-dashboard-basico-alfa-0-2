@@ -52,6 +52,7 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
 )
 
 type Lead = {
+  id: string // Assuming 'id' is the correct primary key type
   idc: number
   IDC?: number
   created_at?: string
@@ -299,11 +300,18 @@ export default function LeadsPage() {
     try {
       setLoading(true)
 
-      let dataQuery = supabase.from("Clientes").select("*").order("created_at", { ascending: false })
-
-      if (inmobiliariaId) {
-        dataQuery = dataQuery.eq("usuario", inmobiliariaId)
+      if (!inmobiliariaId) {
+        console.log("[v0] No inmobiliariaId available, skipping leads fetch")
+        setLeads([])
+        setLoading(false)
+        return
       }
+
+      const dataQuery = supabase
+        .from("Clientes")
+        .select("*")
+        .eq("usuario", inmobiliariaId)
+        .order("created_at", { ascending: false })
 
       // Get leads data
       const { data: leadsData, error: leadsError } = await dataQuery
@@ -954,7 +962,7 @@ export default function LeadsPage() {
     } else {
       setSelectedLeadIds(filteredLeads.map((lead) => lead.id))
     }
-  };
+  }
 
   if (loading || inmobiliariaLoading) {
     return (
