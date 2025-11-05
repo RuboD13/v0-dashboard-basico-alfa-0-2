@@ -53,7 +53,7 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
 
 type Lead = {
   id: string // Added id for consistency with supabase schema
-  idc: number
+  idc?: number // Added for consistency with WhatsApp messages
   IDC?: number
   created_at?: string
   Estado?:
@@ -141,7 +141,9 @@ interface Communication {
   Html?: string
   Tipo?: string
   Nombre?: string
-  idc?: number // Added idc for consistency with supabase schema
+  idc?: number // Added for consistency with WhatsApp messages
+  Mensaje?: string // WhatsApp message content
+  source: "email" | "whatsapp" // To distinguish between email and WhatsApp
 }
 
 export default function LeadsPage() {
@@ -346,28 +348,63 @@ export default function LeadsPage() {
     }
   }
 
-  const fetchCommunications = async (leadEmail: string) => {
+  const fetchCommunications = async (leadEmail: string | undefined, leadPhone?: string) => {
     try {
-      if (!leadEmail) {
+      if (!leadEmail && !leadPhone) {
         setCommunications([])
         return
       }
 
-      const { data, error } = await supabase
-        .from("Correos")
-        .select("*")
-        .eq("Email", leadEmail)
-        .in("Tipo", ["enviado", "recibido"])
-        .order("created_at", { ascending: false })
+      console.log("[v0] Fetching communications for Email:", leadEmail, "Phone:", leadPhone)
 
-      if (error) {
-        console.error("Error fetching communications:", error)
-        throw error
+      const emailsPromise = leadEmail
+        ? supabase.from("Correos").select("*").eq("Email", leadEmail).in("Tipo", ["enviado", "recibido"])
+        : Promise.resolve({ data: [], error: null })
+
+      const whatsappPromise = leadPhone
+        ? supabase.from("Whatsapp").select("*").eq("Telefono", leadPhone).in("Tipo", ["Enviado", "Recibido"])
+        : Promise.resolve({ data: [], error: null })
+
+      const [emailsResult, whatsappResult] = await Promise.all([emailsPromise, whatsappPromise])
+
+      if (emailsResult.error) {
+        console.error("Error fetching emails:", emailsResult.error)
       }
 
-      setCommunications(data || [])
+      if (whatsappResult.error) {
+        console.error("Error fetching WhatsApp messages:", whatsappResult.error)
+      }
+
+      console.log("[v0] Emails fetched:", emailsResult.data?.length || 0)
+      console.log("[v0] WhatsApp messages fetched:", whatsappResult.data?.length || 0)
+
+      // Add source field to distinguish between emails and WhatsApp
+      const emails = (emailsResult.data || []).map((item) => ({
+        ...item,
+        source: "email" as const,
+      }))
+
+      const whatsapps = (whatsappResult.data || []).map((item) => ({
+        ...item,
+        source: "whatsapp" as const,
+        // Map WhatsApp fields to Communication interface fields
+        Mensaje: item.Mensaje,
+        From: item.From,
+        to: item.to,
+        created_at: item.created_at,
+        id: item.id,
+        Tipo: item.Tipo,
+      }))
+
+      // Combine and sort by created_at descending
+      const allCommunications = [...emails, ...whatsapps].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
+
+      console.log("[v0] Total communications:", allCommunications.length)
+      setCommunications(allCommunications)
     } catch (err) {
-      console.error("Error fetching communications:", err)
+      console.error("[v0] Error fetching communications:", err)
     }
   }
 
@@ -377,7 +414,10 @@ export default function LeadsPage() {
   }
 
   const isCommunicationSent = (comm: Communication) => {
-    return comm.Tipo === "enviado"
+    if (comm.source === "whatsapp") {
+      return comm.Tipo === "Enviado"
+    }
+    return comm.Tipo === "enviado" || (comm.source === "email" && comm.From?.includes(inmobiliariaNombre || ""))
   }
 
   const reactivateAdvertisement = async () => {
@@ -452,8 +492,9 @@ export default function LeadsPage() {
     setIsEditingPersonalInfo(false)
     // Reset selected persona to 1 when opening a new lead
     setSelectedPersona(1)
-    if (lead.Correo) {
-      await fetchCommunications(lead.Correo)
+    if (lead.Correo || lead.Telefono) {
+      // Changed from lead.idc to lead.Telefono
+      await fetchCommunications(lead.Correo, lead.Telefono) // Changed from lead.idc to lead.Telefono
     }
   }
 
@@ -782,7 +823,11 @@ export default function LeadsPage() {
 
     const lastComm = communications[0] // Already sorted by created_at desc
     const daysAgo = getDaysAgo(lastComm.created_at)
-    const isSent = lastComm.From?.includes(inmobiliariaNombre || "") || false
+    // Check if it's an email sent by the current inmobiliaria or a WhatsApp message
+    const isSent =
+      lastComm.source === "email"
+        ? lastComm.From?.includes(inmobiliariaNombre || "")
+        : lastComm.source === "whatsapp" && lastComm.Tipo === "Enviado" // Changed from "enviado" to "Enviado" for WhatsApp
 
     return {
       daysAgo,
@@ -3744,8 +3789,10 @@ export default function LeadsPage() {
                             overflowY: "auto",
                           }}
                         >
+                          {/* START: Updated communications list */}
                           {communications.map((comm) => {
                             const isSent = isCommunicationSent(comm)
+                            const isWhatsApp = comm.source === "whatsapp"
                             return (
                               <div
                                 key={comm.id}
@@ -3775,7 +3822,9 @@ export default function LeadsPage() {
                                     marginBottom: "0.5rem",
                                   }}
                                 >
-                                  <span style={{ fontSize: "0.875rem" }}>{isSent ? "📤" : "📥"}</span>
+                                  <span style={{ fontSize: "0.875rem" }}>
+                                    {isWhatsApp ? "💬" : isSent ? "📤" : "📥"}
+                                  </span>
                                   <span
                                     style={{
                                       fontSize: "0.65rem",
@@ -3785,14 +3834,18 @@ export default function LeadsPage() {
                                       letterSpacing: "0.05em",
                                     }}
                                   >
-                                    {isSent ? "Enviado" : "Recibido"}
+                                    {isWhatsApp ? "WhatsApp" : isSent ? "Enviado" : "Recibido"}
                                   </span>
                                 </div>
                                 <div style={{ fontSize: "0.75rem", fontWeight: "600", marginBottom: "0.25rem" }}>
-                                  {comm.From || "Sin remitente"}
+                                  {isWhatsApp ? "Mensaje de WhatsApp" : comm.From || "Sin remitente"}
                                 </div>
                                 <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.5rem" }}>
-                                  {comm.Subject || "Sin asunto"}
+                                  {isWhatsApp
+                                    ? // Strip HTML tags for preview
+                                      (comm.Mensaje?.replace(/<[^>]*>/g, "") || "Sin mensaje").substring(0, 50) +
+                                      (comm.Mensaje && comm.Mensaje.replace(/<[^>]*>/g, "").length > 50 ? "..." : "")
+                                    : comm.Subject || "Sin asunto"}
                                 </div>
                                 <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
                                   {new Date(comm.created_at).toLocaleDateString("es-ES")}
@@ -3800,6 +3853,7 @@ export default function LeadsPage() {
                               </div>
                             )
                           })}
+                          {/* END: Updated communications list */}
                         </div>
                       ) : (
                         <div
@@ -4218,7 +4272,7 @@ export default function LeadsPage() {
                     </div>
                   )}
                   <div className="flex justify-between pt-1.5 border-t">
-                    <span className="text-sm font-semibold text-muted-foreground">Total Ingresos:</span>
+                    <span className="text-sm font-medium text-muted-foreground">Total Ingresos:</span>
                     <span className="text-sm font-bold text-green-600">{formatCurrency(avalCalculation.income)}</span>
                   </div>
                 </div>
@@ -4354,20 +4408,20 @@ export default function LeadsPage() {
       <Dialog open={isCommDialogOpen} onOpenChange={setIsCommDialogOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto z-[300]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedCommunication && isCommunicationSent(selectedCommunication) ? (
+            <DialogTitle className="text-lg font-semibold">
+              {selectedCommunication && selectedCommunication.source === "whatsapp" ? (
                 <>
-                  <span className="text-blue-600">
-                    📤 {/* Added emoji */}
-                    Correo Enviado
+                  <span className={isCommunicationSent(selectedCommunication) ? "text-blue-600" : "text-green-600"}>
+                    💬 WhatsApp {isCommunicationSent(selectedCommunication) ? "Enviado" : "Recibido"}
                   </span>
+                </>
+              ) : selectedCommunication && isCommunicationSent(selectedCommunication) ? (
+                <>
+                  <span className="text-blue-600">📤 Correo Enviado</span>
                 </>
               ) : (
                 <>
-                  <span className="text-green-600">
-                    📥 {/* Added emoji */}
-                    Correo Recibido
-                  </span>
+                  <span className="text-green-600">📥 Correo Recibido</span>
                 </>
               )}
             </DialogTitle>
@@ -4375,7 +4429,7 @@ export default function LeadsPage() {
 
           {selectedCommunication && (
             <div className="space-y-4">
-              {/* Email Header Info */}
+              {/* Communication Header Info */}
               <div
                 className={`p-4 rounded-lg border ${
                   isCommunicationSent(selectedCommunication)
@@ -4384,37 +4438,67 @@ export default function LeadsPage() {
                 }`}
               >
                 <div className="space-y-2 text-sm">
-                  <div className="flex gap-2">
-                    <span className="font-semibold min-w-[80px]">De:</span>
-                    <span>{selectedCommunication.From || "Sin remitente"}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="font-semibold min-w-[80px]">Para:</span>
-                    <span>{selectedCommunication.to || "Sin destinatario"}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="font-semibold min-w-[80px]">Asunto:</span>
-                    <span>{selectedCommunication.Subject || "Sin asunto"}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="font-semibold min-w-[80px]">Fecha:</span>
-                    <span>
-                      {new Date(selectedCommunication.created_at).toLocaleString("es-ES", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
+                  {selectedCommunication.source === "whatsapp" ? (
+                    <>
+                      <div className="flex gap-2">
+                        <span className="font-semibold min-w-[80px]">Tipo:</span>
+                        <span>Mensaje de WhatsApp</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="font-semibold min-w-[80px]">Fecha:</span>
+                        <span>
+                          {new Date(selectedCommunication.created_at).toLocaleString("es-ES", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    </>
+                  ) : selectedCommunication.From ? ( // Check if 'From' exists before assuming it's an email
+                    <>
+                      <div className="flex gap-2">
+                        <span className="font-semibold min-w-[80px]">De:</span>
+                        <span>{selectedCommunication.From || "Sin remitente"}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="font-semibold min-w-[80px]">Para:</span>
+                        <span>{selectedCommunication.to || "Sin destinatario"}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="font-semibold min-w-[80px]">Asunto:</span>
+                        <span>{selectedCommunication.Subject || "Sin asunto"}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="font-semibold min-w-[80px]">Fecha:</span>
+                        <span>
+                          {new Date(selectedCommunication.created_at).toLocaleString("es-ES", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Información de remitente/destinatario no disponible.</p>
+                  )}
                 </div>
               </div>
 
-              {/* Email Body */}
+              {/* Message Body */}
               <div className="border rounded-lg p-4 bg-white">
                 <h3 className="text-sm font-semibold mb-3">Mensaje:</h3>
-                {selectedCommunication.Html ? (
+                {selectedCommunication.source === "whatsapp" ? (
+                  <div
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: selectedCommunication.Mensaje || "Sin contenido" }}
+                  />
+                ) : selectedCommunication.Html ? (
                   <div
                     className="prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: selectedCommunication.Html }}
