@@ -141,6 +141,7 @@ interface Communication {
   Html?: string
   Tipo?: string
   Nombre?: string
+  idc?: number // Added idc for consistency with supabase schema
 }
 
 export default function LeadsPage() {
@@ -347,16 +348,26 @@ export default function LeadsPage() {
 
   const fetchCommunications = async (leadEmail: string) => {
     try {
+      if (!leadEmail) {
+        setCommunications([])
+        return
+      }
+
       const { data, error } = await supabase
         .from("Correos")
         .select("*")
-        .or(`From.eq.${leadEmail},to.eq.${leadEmail}`)
+        .eq("Email", leadEmail)
+        .in("Tipo", ["enviado", "recibido"])
         .order("created_at", { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error("Error fetching communications:", error)
+        throw error
+      }
+
       setCommunications(data || [])
     } catch (err) {
-      console.error("[v0] Error fetching communications:", err)
+      console.error("Error fetching communications:", err)
     }
   }
 
@@ -366,7 +377,7 @@ export default function LeadsPage() {
   }
 
   const isCommunicationSent = (comm: Communication) => {
-    return comm.From?.toLowerCase().includes(inmobiliariaNombre?.toLowerCase() || "") || false
+    return comm.Tipo === "enviado"
   }
 
   const reactivateAdvertisement = async () => {
@@ -443,16 +454,6 @@ export default function LeadsPage() {
     setSelectedPersona(1)
     if (lead.Correo) {
       await fetchCommunications(lead.Correo)
-    }
-  }
-
-  const handleAdvertisementClick = (ad: Advertisement) => {
-    if (ad.Activacion === "Pausado") {
-      setAdvertisementToReactivate(ad)
-      setIsReactivateDialogOpen(true)
-    } else {
-      console.log("[v0] Selecting advertisement:", ad.ida, "- Referencia:", ad.Referencia)
-      setSelectedAdvertisement(ad.ida)
     }
   }
 
@@ -988,6 +989,11 @@ export default function LeadsPage() {
         </div>
       </div>
     )
+  }
+
+  const handleAdvertisementClick = (ad: Advertisement) => {
+    console.log("[v0] Clicking advertisement:", ad.ida)
+    setSelectedAdvertisement(ad.ida)
   }
 
   return (
@@ -3738,38 +3744,62 @@ export default function LeadsPage() {
                             overflowY: "auto",
                           }}
                         >
-                          {communications.map((comm) => (
-                            <div
-                              key={comm.id}
-                              onClick={() => openCommunicationDetail(comm)}
-                              style={{
-                                padding: "0.75rem",
-                                backgroundColor: "#f9fafb",
-                                borderRadius: "6px",
-                                border: "1px solid #e5e7eb",
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = "#f3f4f6"
-                                e.currentTarget.style.borderColor = "#d1d5db"
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = "#f9fafb"
-                                e.currentTarget.style.borderColor = "#e5e7eb"
-                              }}
-                            >
-                              <div style={{ fontSize: "0.75rem", fontWeight: "600", marginBottom: "0.25rem" }}>
-                                {comm.From || "Sin remitente"}
+                          {communications.map((comm) => {
+                            const isSent = isCommunicationSent(comm)
+                            return (
+                              <div
+                                key={comm.id}
+                                onClick={() => openCommunicationDetail(comm)}
+                                style={{
+                                  padding: "0.75rem",
+                                  backgroundColor: isSent ? "#eff6ff" : "#f0fdf4",
+                                  borderRadius: "6px",
+                                  border: `1px solid ${isSent ? "#bfdbfe" : "#bbf7d0"}`,
+                                  cursor: "pointer",
+                                  transition: "all 0.2s",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = isSent ? "#dbeafe" : "#dcfce7"
+                                  e.currentTarget.style.borderColor = isSent ? "#93c5fd" : "#86efac"
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = isSent ? "#eff6ff" : "#f0fdf4"
+                                  e.currentTarget.style.borderColor = isSent ? "#bfdbfe" : "#bbf7d0"
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                  }}
+                                >
+                                  <span style={{ fontSize: "0.875rem" }}>{isSent ? "📤" : "📥"}</span>
+                                  <span
+                                    style={{
+                                      fontSize: "0.65rem",
+                                      fontWeight: "600",
+                                      color: isSent ? "#2563eb" : "#16a34a",
+                                      textTransform: "uppercase",
+                                      letterSpacing: "0.05em",
+                                    }}
+                                  >
+                                    {isSent ? "Enviado" : "Recibido"}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: "0.75rem", fontWeight: "600", marginBottom: "0.25rem" }}>
+                                  {comm.From || "Sin remitente"}
+                                </div>
+                                <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.5rem" }}>
+                                  {comm.Subject || "Sin asunto"}
+                                </div>
+                                <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
+                                  {new Date(comm.created_at).toLocaleDateString("es-ES")}
+                                </div>
                               </div>
-                              <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.5rem" }}>
-                                {comm.Subject || "Sin asunto"}
-                              </div>
-                              <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
-                                {new Date(comm.created_at).toLocaleDateString("es-ES")}
-                              </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       ) : (
                         <div
@@ -4304,7 +4334,7 @@ export default function LeadsPage() {
                           `- DNI/NIE del avalista\n` +
                           `- Justificante de ingresos del avalista\n` +
                           `- Declaración de la renta del avalista\n\n` +
-                          `Saludos cordiales`
+                          `Saludos cordiales`,
                       )
                       window.open(`mailto:${selectedLead.Correo}?subject=${subject}&body=${body}`, "_blank")
                       setIsAvalDialogOpen(false)

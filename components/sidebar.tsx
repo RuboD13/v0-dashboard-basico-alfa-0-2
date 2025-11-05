@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { Home, Megaphone, Users, Info, User, Building2, Settings } from "lucide-react"
 import LogoutButton from "@/components/logout-button"
 import { useInmobiliaria } from "@/lib/contexts/inmobiliaria-context"
+import { APP_VERSION, APP_NAME } from "@/lib/version"
 
 interface SidebarProps {
   user: {
@@ -50,7 +51,9 @@ export default function Sidebar({ user }: SidebarProps) {
       {/* Header */}
       <div className="p-6 border-b border-border">
         <h1 className="text-lg font-semibold text-foreground">Dashboard Básico</h1>
-        <p className="text-sm text-muted-foreground">Alfa v30</p>
+        <p className="text-sm text-muted-foreground">
+          {APP_NAME} {APP_VERSION}
+        </p>
       </div>
 
       {/* Navigation */}
