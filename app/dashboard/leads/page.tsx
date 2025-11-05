@@ -52,6 +52,7 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
 )
 
 type Lead = {
+  id: string // Added id for consistency with supabase schema
   idc: number
   IDC?: number
   created_at?: string
@@ -95,7 +96,6 @@ type Lead = {
   "Correo 3"?: string
   "Telefono 3"?: string
   "Codigo_Postal 3"?: string
-  "Pais 3"?: string
   tipo3?: string
   Persona_4?: string
   "Tipo_Documento 4"?: string
@@ -299,11 +299,32 @@ export default function LeadsPage() {
     try {
       setLoading(true)
 
-      let dataQuery = supabase.from("Clientes").select("*").order("created_at", { ascending: false })
+      const { data: activeAds, error: adsError } = await supabase
+        .from("Anuncios")
+        .select("Referencia")
+        .eq("usuario", inmobiliariaId)
+        .in("Activacion", ["Activo", "Pausado"])
 
-      if (inmobiliariaId) {
-        dataQuery = dataQuery.eq("usuario", inmobiliariaId)
+      if (adsError) throw adsError
+
+      // Extract the referencias from active/paused ads
+      const activeReferences = activeAds?.map((ad) => ad.Referencia).filter(Boolean) || []
+
+      // If no active ads, return empty leads
+      if (activeReferences.length === 0) {
+        setLeads([])
+        setAvailableStatuses([])
+        setLoading(false)
+        return
       }
+
+      // Now fetch leads that have an Inmueble matching one of the active referencias
+      const dataQuery = supabase
+        .from("Clientes")
+        .select("*")
+        .eq("usuario", inmobiliariaId)
+        .in("Inmueble", activeReferences)
+        .order("created_at", { ascending: false })
 
       // Get leads data
       const { data: leadsData, error: leadsError } = await dataQuery
@@ -954,7 +975,7 @@ export default function LeadsPage() {
     } else {
       setSelectedLeadIds(filteredLeads.map((lead) => lead.id))
     }
-  };
+  }
 
   if (loading || inmobiliariaLoading) {
     return (
@@ -970,273 +991,603 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      {" "}
-      {/* Changed from p-8 */}
-      {/* Sidebar and other layout elements would go here if present */}
-      <main className="flex-1 overflow-auto">
+    <>
+      <div className="flex h-screen bg-background">
         {" "}
         {/* Changed from p-8 */}
-        <div className="p-6">
+        {/* Sidebar and other layout elements would go here if present */}
+        <main className="flex-1 overflow-auto">
           {" "}
           {/* Changed from p-8 */}
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold text-foreground">Leads</h2>
-              <p className="text-muted-foreground mt-2">Gestión de clientes potenciales</p>
-            </div>
-            <Button onClick={() => setIsNewLeadDialogOpen(true)}>
-              <Users className="h-4 w-4 mr-2" />
-              Nuevo Lead
-            </Button>
-          </div>
-          {/* Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+          <div className="p-6">
             {" "}
-            {/* Added mt-8 */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalLeads}</div>
-                <p className="text-xs text-muted-foreground">Últimos 30 días</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Nuevos Hoy</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{newLeadsToday}</div>
-                <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Completados</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{completedLeads}</div>
-                <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tasa Conversión</CardTitle>
-                <Star className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-600">{conversionRate}%</div>
-                <p className="text-xs text-muted-foreground">Conversión total</p>
-              </CardContent>
-            </Card>
-          </div>
-          {/* Updated section for Active Advertisements */}
-          <div className="mt-8 space-y-2">
-            {" "}
-            {/* Added mt-8 */}
-            <div className="flex items-center gap-1.5">
-              <Home className="h-4 w-4 text-primary" />
-              <h3 className="text-base font-semibold">Anuncios Activos</h3>
-              <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                {advertisements.filter((ad) => ad.Activacion !== "Archivado").length} anuncios
-              </Badge>
+            {/* Changed from p-8 */}
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-foreground">Leads</h2>
+                <p className="text-muted-foreground mt-2">Gestión de clientes potenciales</p>
+              </div>
+              <Button onClick={() => setIsNewLeadDialogOpen(true)}>
+                <Users className="h-4 w-4 mr-2" />
+                Nuevo Lead
+              </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
-              <Card
-                className={`cursor-pointer transition-all hover:shadow-md border-2 px-1 ${
-                  selectedAdvertisement === null || selectedAdvertisement === "all"
-                    ? "border-primary bg-primary/5"
-                    : "border-gray-200"
-                }`}
-                onClick={() => {
-                  console.log("[v0] Selecting all advertisements")
-                  setSelectedAdvertisement(null)
-                }}
-              >
-                {/* CHANGE: Reduced padding from p-1 to p-0.5 for more compact cards */}
-                <CardContent className="p-0.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="font-medium">Todos los Anuncios</p>
-                      <p className="text-[10px] text-muted-foreground">Ver todos los leads</p>
-                    </div>
-                    <Building className="h-6 w-6 text-primary flex-shrink-0" />
-                  </div>
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+              {" "}
+              {/* Added mt-8 */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{totalLeads}</div>
+                  <p className="text-xs text-muted-foreground">Últimos 30 días</p>
                 </CardContent>
               </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Nuevos Hoy</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{newLeadsToday}</div>
+                  <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Completados</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">{completedLeads}</div>
+                  <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Tasa Conversión</CardTitle>
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">{conversionRate}%</div>
+                  <p className="text-xs text-muted-foreground">Conversión total</p>
+                </CardContent>
+              </Card>
+            </div>
+            {/* Updated section for Active Advertisements */}
+            <div className="mt-8 space-y-2">
+              {" "}
+              {/* Added mt-8 */}
+              <div className="flex items-center gap-1.5">
+                <Home className="h-4 w-4 text-primary" />
+                <h3 className="text-base font-semibold">Anuncios Activos</h3>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                  {advertisements.filter((ad) => ad.Activacion !== "Archivado").length} anuncios
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
+                <Card
+                  className={`cursor-pointer transition-all hover:shadow-md border-2 px-1 ${
+                    selectedAdvertisement === null || selectedAdvertisement === "all"
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-200"
+                  }`}
+                  onClick={() => {
+                    console.log("[v0] Selecting all advertisements")
+                    setSelectedAdvertisement(null)
+                  }}
+                >
+                  {/* CHANGE: Reduced padding from p-1 to p-0.5 for more compact cards */}
+                  <CardContent className="p-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium">Todos los Anuncios</p>
+                        <p className="text-[10px] text-muted-foreground">Ver todos los leads</p>
+                      </div>
+                      <Building className="h-6 w-6 text-primary flex-shrink-0" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {advertisements
-                .filter((ad) => ad.Activacion !== "Archivado")
-                .map((ad) => {
-                  const isPaused = ad.Activacion === "Pausado"
-                  const isActive = ad.Activacion === "Activo"
+                {advertisements
+                  .filter((ad) => ad.Activacion !== "Archivado")
+                  .map((ad) => {
+                    const isPaused = ad.Activacion === "Pausado"
+                    const isActive = ad.Activacion === "Activo"
 
-                  return (
-                    <Card
-                      key={ad.ida}
-                      className={`cursor-pointer transition-all hover:shadow-md border-2 px-5 ${
-                        selectedAdvertisement === ad.ida
-                          ? "border-primary bg-primary/5"
-                          : isPaused
-                            ? "border-gray-300 bg-gray-100 opacity-60"
-                            : "border-gray-200"
-                      }`}
-                      onClick={() => handleAdvertisementClick(ad)}
-                    >
-                      {/* CHANGE: Reduced padding from p-1 to p-0.5 for more compact cards */}
-                      <CardContent className="p-0.5">
-                        <div className="space-y-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1">
-                              <p className={`font-medium text-base ${isPaused ? "text-gray-500" : ""}`}>
-                                {ad.Referencia || "Sin referencia"}
-                              </p>
-                              {isPaused && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[8px] px-1 py-0 h-3 bg-yellow-100 text-yellow-800"
-                                >
-                                  Pausado
-                                </Badge>
-                              )}
+                    return (
+                      <Card
+                        key={ad.ida}
+                        className={`cursor-pointer transition-all hover:shadow-md border-2 px-5 ${
+                          selectedAdvertisement === ad.ida
+                            ? "border-primary bg-primary/5"
+                            : isPaused
+                              ? "border-gray-300 bg-gray-100 opacity-60"
+                              : "border-gray-200"
+                        }`}
+                        onClick={() => handleAdvertisementClick(ad)}
+                      >
+                        {/* CHANGE: Reduced padding from p-1 to p-0.5 for more compact cards */}
+                        <CardContent className="p-0.5">
+                          <div className="space-y-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1">
+                                <p className={`font-medium text-base ${isPaused ? "text-gray-500" : ""}`}>
+                                  {ad.Referencia || "Sin referencia"}
+                                </p>
+                                {isPaused && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[8px] px-1 py-0 h-3 bg-yellow-100 text-yellow-800"
+                                  >
+                                    Pausado
+                                  </Badge>
+                                )}
+                              </div>
+                              <Home
+                                className={`h-6 w-6 flex-shrink-0 ${isPaused ? "text-gray-400" : "text-primary"}`}
+                              />
                             </div>
-                            <Home className={`h-6 w-6 flex-shrink-0 ${isPaused ? "text-gray-400" : "text-primary"}`} />
-                          </div>
-                          <p
-                            className={`text-[10px] truncate pl-0 ${isPaused ? "text-gray-400" : "text-muted-foreground"}`}
-                          >
-                            {ad.Direccion || "Sin dirección"}
-                          </p>
-                          <div className="flex items-center justify-between pl-0">
-                            <span
-                              className={`text-[10px] font-medium ${isPaused ? "text-gray-500" : "text-green-600"}`}
+                            <p
+                              className={`text-[10px] truncate pl-0 ${isPaused ? "text-gray-400" : "text-muted-foreground"}`}
                             >
-                              {formatCurrency(ad.Precio)}
-                            </span>
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">
-                              {ad.Portal || "Portal"}
-                            </Badge>
+                              {ad.Direccion || "Sin dirección"}
+                            </p>
+                            <div className="flex items-center justify-between pl-0">
+                              <span
+                                className={`text-[10px] font-medium ${isPaused ? "text-gray-500" : "text-green-600"}`}
+                              >
+                                {formatCurrency(ad.Precio)}
+                              </span>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">
+                                {ad.Portal || "Portal"}
+                              </Badge>
+                            </div>
                           </div>
-                        </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+              </div>
+            </div>
+            {/* Filters */}
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              {" "}
+              {/* Added mt-8 */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, email o inmueble..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  {availableStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status === "Pedir Aval" ? "Aval Pedido" : status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <MoreVertical className="h-4 w-4 mr-2" />
+                      Acciones
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setIsBulkSelectionMode(!isBulkSelectionMode)
+                        if (isBulkSelectionMode) {
+                          setSelectedLeadIds([])
+                        }
+                      }}
+                      className="font-medium text-blue-600"
+                    >
+                      <Checkbox checked={isBulkSelectionMode} className="mr-2" />
+                      Selección Múltiple
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+            {/* Leads List */}
+            {isBulkSelectionMode ? (
+              <Card className="mt-8">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {filteredLeads.length > 0 && (
+                        <Checkbox
+                          checked={selectedLeadIds.length === filteredLeads.length && filteredLeads.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Seleccionar todos"
+                        />
+                      )}
+                      <CardTitle>Leads ({filteredLeads.length})</CardTitle>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {selectedLeadIds.length > 0 && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium">
+                          {selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? "s" : ""} seleccionado
+                          {selectedLeadIds.length > 1 ? "s" : ""}
+                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              Cambiar estado
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            <DropdownMenuItem onClick={() => updateBulkLeadStatus("Pendiente")}>
+                              Pendiente
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateBulkLeadStatus("Validado")}>
+                              Validado
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateBulkLeadStatus("Completado")}>
+                              Completado
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateBulkLeadStatus("Rechazado")}>
+                              Rechazado
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateBulkLeadStatus("Aceptado")}>
+                              Aceptado
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateBulkLeadStatus("Descartado")}>
+                              Descartado
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => setSelectedLeadIds([])}>
+                        Limpiar selección
+                      </Button>
+                    </div>
+                  )}
+
+                  {error ? (
+                    <Card className="border-red-200">
+                      <CardHeader>
+                        <CardTitle className="text-red-600">Error al cargar leads</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-red-600">{error}</p>
                       </CardContent>
                     </Card>
-                  )
-                })}
-            </div>
-          </div>
-          {/* Filters */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-4">
-            {" "}
-            {/* Added mt-8 */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nombre, email o inmueble..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filtrar por estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                {availableStatuses.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status === "Pedir Aval" ? "Aval Pedido" : status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <MoreVertical className="h-4 w-4 mr-2" />
-                    Acciones
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setIsBulkSelectionMode(!isBulkSelectionMode)
-                      if (isBulkSelectionMode) {
-                        setSelectedLeadIds([])
-                      }
-                    }}
-                    className="font-medium text-blue-600"
-                  >
-                    <Checkbox checked={isBulkSelectionMode} className="mr-2" />
-                    Selección Múltiple
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-          {/* Leads List */}
-          {isBulkSelectionMode ? (
-            <Card className="mt-8">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {filteredLeads.length > 0 && (
-                      <Checkbox
-                        checked={selectedLeadIds.length === filteredLeads.length && filteredLeads.length > 0}
-                        onCheckedChange={toggleSelectAll}
-                        aria-label="Seleccionar todos"
-                      />
-                    )}
-                    <CardTitle>Leads ({filteredLeads.length})</CardTitle>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {selectedLeadIds.length > 0 && (
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">
-                        {selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? "s" : ""} seleccionado
-                        {selectedLeadIds.length > 1 ? "s" : ""}
-                      </span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="sm" variant="outline">
-                            Cambiar estado
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Pendiente")}>
-                            Pendiente
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Validado")}>Validado</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Completado")}>
-                            Completado
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Rechazado")}>
-                            Rechazado
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Aceptado")}>Aceptado</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBulkLeadStatus("Descartado")}>
-                            Descartado
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    <Button size="sm" variant="ghost" onClick={() => setSelectedLeadIds([])}>
-                      Limpiar selección
-                    </Button>
-                  </div>
-                )}
+                  ) : (
+                    <div className="grid gap-3">
+                      {filteredLeads.length > 0 ? (
+                        filteredLeads.map((lead) => {
+                          const isComplete = isLeadComplete(lead)
+                          const isDescartado = lead.Estado === "Descartado"
+                          const isAceptado = lead.Estado === "Aceptado"
+                          const { percentage: completionPercentage, totalFields } = calculateCompleteness(lead)
+                          const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
+                          const personaCount = countPersonas(lead)
 
+                          // Add checkbox for individual selection
+                          const isSelected = selectedLeadIds.includes(lead.id)
+
+                          return (
+                            <Card
+                              key={lead.id}
+                              className={`hover:shadow-md transition-all cursor-pointer ${
+                                isSelected // Highlight selected leads
+                                  ? "ring-2 ring-primary ring-offset-2"
+                                  : ""
+                              } ${
+                                isDescartado
+                                  ? "opacity-40 bg-gray-50 border-gray-300"
+                                  : isAceptado
+                                    ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
+                                    : isDataComplete
+                                      ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
+                                      : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
+                              }`}
+                              onClick={() => openLeadDetail(lead)}
+                            >
+                              <CardContent className="p-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    {isBulkSelectionMode && (
+                                      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                                        <Checkbox
+                                          checked={isSelected}
+                                          onCheckedChange={() => toggleLeadSelection(lead.id)}
+                                          className="mr-3"
+                                        />
+                                      </div>
+                                    )}
+
+                                    <div className="relative w-8 h-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center flex-shrink-0">
+                                      {personaCount === 1 ? (
+                                        <User className="h-4 w-4 text-primary" />
+                                      ) : (
+                                        <Users className="h-4 w-4 text-primary" />
+                                      )}
+                                      {personaCount > 1 && (
+                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                          {personaCount}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="font-semibold text-sm truncate">
+                                          {lead.Nombre || "Sin nombre"}
+                                        </h3>
+
+                                        <div className="flex items-center gap-1.5">
+                                          {(() => {
+                                            const statusColors = getStatusColors(lead.Estado)
+                                            const showEstadoBadge =
+                                              lead.Estado &&
+                                              lead.Estado !== "Datos Incompletos" &&
+                                              lead.Estado !== "Completo"
+
+                                            if (showEstadoBadge) {
+                                              return (
+                                                <div
+                                                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border"
+                                                  style={{
+                                                    backgroundColor: statusColors.bg,
+                                                    borderColor: statusColors.border,
+                                                  }}
+                                                >
+                                                  <span
+                                                    className="text-xs font-semibold"
+                                                    style={{ color: statusColors.text }}
+                                                  >
+                                                    {lead.Estado === "Aceptado" ? "✓ " : ""}
+                                                    {statusColors.label}
+                                                  </span>
+                                                  <div
+                                                    className="h-3 w-px"
+                                                    style={{ backgroundColor: statusColors.border }}
+                                                  />
+                                                  <div className="flex items-center gap-0.5">
+                                                    <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                                    <span
+                                                      className="text-xs font-semibold"
+                                                      style={{ color: statusColors.text }}
+                                                    >
+                                                      {completionPercentage}%
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              )
+                                            } else if (isDataComplete) {
+                                              return (
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
+                                                  <span className="text-xs font-semibold text-green-800">
+                                                    ✓ Completo
+                                                  </span>
+                                                  <div className="h-3 w-px bg-green-400" />
+                                                  <div className="flex items-center gap-0.5">
+                                                    <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                                    <span className="text-xs font-semibold text-green-700">
+                                                      {completionPercentage}%
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              )
+                                            } else {
+                                              return (
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
+                                                  <span className="text-xs font-semibold text-amber-800">
+                                                    Incompleto
+                                                  </span>
+                                                  <div className="h-3 w-px bg-amber-400" />
+                                                  <div className="flex items-center gap-0.5">
+                                                    <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                                                    <span className="text-xs font-semibold text-amber-700">
+                                                      {completionPercentage}%
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              )
+                                            }
+                                          })()}
+                                        </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-0 text-xs text-muted-foreground mb-2">
+                                        <div className="flex items-center gap-1">
+                                          <Mail className="h-3 w-3" />
+                                          <span className="truncate">{lead.Correo || "Sin email"}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Phone className="h-3 w-3" />
+                                          <span>{lead.Telefono || "Sin teléfono"}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Building className="h-3 w-3" />
+                                          <span className="truncate">{lead.Inmueble || "Sin inmueble"}</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-3 text-xs">
+                                        <div className="flex items-center gap-1 text-green-600">
+                                          <Euro className="h-3 w-3" />
+                                          <span className="font-medium">
+                                            {formatCurrency(
+                                              (lead.Ingresos || 0) +
+                                                (lead.Ingresos_2 || 0) +
+                                                (lead.Ingresos_3 || 0) +
+                                                (lead.Ingresos_4 || 0),
+                                            )}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-muted-foreground">
+                                          <Clock className="h-3 w-3" />
+                                          <span>{formatDate(lead.created_at)}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Quick Actions */}
+                                  <TooltipProvider>
+                                    <div className="flex items-center gap-1 ml-2">
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 w-6 p-0 bg-transparent"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              if (lead.Correo) {
+                                                window.open(`mailto:${lead.Correo}`, "_blank")
+                                              }
+                                            }}
+                                            disabled={!lead.Correo}
+                                          >
+                                            <Mail className="h-3 w-3" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Enviar correo</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 w-6 p-0 bg-transparent"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              if (lead.Telefono) {
+                                                window.open(
+                                                  `https://wa.me/${lead.Telefono.replace(/\D/g, "")}`,
+                                                  "_blank",
+                                                )
+                                              }
+                                            }}
+                                            disabled={!lead.Telefono}
+                                          >
+                                            <WhatsAppIcon className="h-3 w-3" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Contactar por WhatsApp</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+
+                                      <DropdownMenu>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-6 w-6 p-0 bg-transparent"
+                                                onClick={(e) => {
+                                                  e.stopPropagation()
+                                                }}
+                                              >
+                                                <MoreVertical className="h-3 w-3" />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Cambiar estado</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              updateLeadStatus(lead.id, "Pendiente")
+                                            }}
+                                          >
+                                            Pendiente
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              updateLeadStatus(lead.id, "Validado")
+                                            }}
+                                          >
+                                            Validado
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              updateLeadStatus(lead.id, "Completado")
+                                            }}
+                                          >
+                                            Completado
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              updateLeadStatus(lead.id, "Rechazado")
+                                            }}
+                                          >
+                                            Rechazado
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              updateLeadStatus(lead.id, "Aceptado")
+                                            }}
+                                          >
+                                            Aceptado
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              updateLeadStatus(lead.id, "Descartado")
+                                            }}
+                                          >
+                                            Descartado
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </TooltipProvider>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )
+                        })
+                      ) : (
+                        <Card>
+                          <CardContent className="p-8 text-center">
+                            <p className="text-muted-foreground">No se encontraron leads</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="mt-8">
                 {error ? (
                   <Card className="border-red-200">
                     <CardHeader>
@@ -1253,21 +1604,15 @@ export default function LeadsPage() {
                         const isComplete = isLeadComplete(lead)
                         const isDescartado = lead.Estado === "Descartado"
                         const isAceptado = lead.Estado === "Aceptado"
-                        const { percentage: completionPercentage, totalFields } = calculateCompleteness(lead)
+                        const { percentage: completionPercentage } = calculateCompleteness(lead)
                         const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
                         const personaCount = countPersonas(lead)
-
-                        // Add checkbox for individual selection
                         const isSelected = selectedLeadIds.includes(lead.id)
 
                         return (
                           <Card
                             key={lead.id}
                             className={`hover:shadow-md transition-all cursor-pointer ${
-                              isSelected // Highlight selected leads
-                                ? "ring-2 ring-primary ring-offset-2"
-                                : ""
-                            } ${
                               isDescartado
                                 ? "opacity-40 bg-gray-50 border-gray-300"
                                 : isAceptado
@@ -1401,7 +1746,7 @@ export default function LeadsPage() {
                                             (lead.Ingresos || 0) +
                                               (lead.Ingresos_2 || 0) +
                                               (lead.Ingresos_3 || 0) +
-                                              (lead.Ingresos_4 || 0), // Include Persona 4 income
+                                              (lead.Ingresos_4 || 0),
                                           )}
                                         </span>
                                       </div>
@@ -1547,319 +1892,12 @@ export default function LeadsPage() {
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="mt-8">
-              {error ? (
-                <Card className="border-red-200">
-                  <CardHeader>
-                    <CardTitle className="text-red-600">Error al cargar leads</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-red-600">{error}</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-3">
-                  {filteredLeads.length > 0 ? (
-                    filteredLeads.map((lead) => {
-                      const isComplete = isLeadComplete(lead)
-                      const isDescartado = lead.Estado === "Descartado"
-                      const isAceptado = lead.Estado === "Aceptado"
-                      const { percentage: completionPercentage } = calculateCompleteness(lead)
-                      const isDataComplete = completionPercentage >= 80 // 80% or more is considered complete
-                      const personaCount = countPersonas(lead)
-                      const isSelected = selectedLeadIds.includes(lead.id)
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
 
-                      return (
-                        <Card
-                          key={lead.id}
-                          className={`hover:shadow-md transition-all cursor-pointer ${
-                            isDescartado
-                              ? "opacity-40 bg-gray-50 border-gray-300"
-                              : isAceptado
-                                ? "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50"
-                                : isDataComplete
-                                  ? "border-green-200 bg-green-50/30 hover:bg-green-50/50"
-                                  : "border-amber-200 bg-amber-50/30 hover:bg-amber-50/50"
-                          }`}
-                          onClick={() => openLeadDetail(lead)}
-                        >
-                          <CardContent className="p-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3 flex-1">
-                                {isBulkSelectionMode && (
-                                  <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                                    <Checkbox
-                                      checked={isSelected}
-                                      onCheckedChange={() => toggleLeadSelection(lead.id)}
-                                      className="mr-3"
-                                    />
-                                  </div>
-                                )}
-
-                                <div className="relative w-8 h-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center flex-shrink-0">
-                                  {personaCount === 1 ? (
-                                    <User className="h-4 w-4 text-primary" />
-                                  ) : (
-                                    <Users className="h-4 w-4 text-primary" />
-                                  )}
-                                  {personaCount > 1 && (
-                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                                      {personaCount}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h3 className="font-semibold text-sm truncate">{lead.Nombre || "Sin nombre"}</h3>
-
-                                    <div className="flex items-center gap-1.5">
-                                      {(() => {
-                                        const statusColors = getStatusColors(lead.Estado)
-                                        const showEstadoBadge =
-                                          lead.Estado &&
-                                          lead.Estado !== "Datos Incompletos" &&
-                                          lead.Estado !== "Completo"
-
-                                        if (showEstadoBadge) {
-                                          return (
-                                            <div
-                                              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border"
-                                              style={{
-                                                backgroundColor: statusColors.bg,
-                                                borderColor: statusColors.border,
-                                              }}
-                                            >
-                                              <span
-                                                className="text-xs font-semibold"
-                                                style={{ color: statusColors.text }}
-                                              >
-                                                {lead.Estado === "Aceptado" ? "✓ " : ""}
-                                                {statusColors.label}
-                                              </span>
-                                              <div
-                                                className="h-3 w-px"
-                                                style={{ backgroundColor: statusColors.border }}
-                                              />
-                                              <div className="flex items-center gap-0.5">
-                                                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                                <span
-                                                  className="text-xs font-semibold"
-                                                  style={{ color: statusColors.text }}
-                                                >
-                                                  {completionPercentage}%
-                                                </span>
-                                              </div>
-                                            </div>
-                                          )
-                                        } else if (isDataComplete) {
-                                          return (
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-300">
-                                              <span className="text-xs font-semibold text-green-800">✓ Completo</span>
-                                              <div className="h-3 w-px bg-green-400" />
-                                              <div className="flex items-center gap-0.5">
-                                                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                                <span className="text-xs font-semibold text-green-700">
-                                                  {completionPercentage}%
-                                                </span>
-                                              </div>
-                                            </div>
-                                          )
-                                        } else {
-                                          return (
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300">
-                                              <span className="text-xs font-semibold text-amber-800">Incompleto</span>
-                                              <div className="h-3 w-px bg-amber-400" />
-                                              <div className="flex items-center gap-0.5">
-                                                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                                <span className="text-xs font-semibold text-amber-700">
-                                                  {completionPercentage}%
-                                                </span>
-                                              </div>
-                                            </div>
-                                          )
-                                        }
-                                      })()}
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-0 text-xs text-muted-foreground mb-2">
-                                    <div className="flex items-center gap-1">
-                                      <Mail className="h-3 w-3" />
-                                      <span className="truncate">{lead.Correo || "Sin email"}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Phone className="h-3 w-3" />
-                                      <span>{lead.Telefono || "Sin teléfono"}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Building className="h-3 w-3" />
-                                      <span className="truncate">{lead.Inmueble || "Sin inmueble"}</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-3 text-xs">
-                                    <div className="flex items-center gap-1 text-green-600">
-                                      <Euro className="h-3 w-3" />
-                                      <span className="font-medium">
-                                        {formatCurrency(
-                                          (lead.Ingresos || 0) +
-                                            (lead.Ingresos_2 || 0) +
-                                            (lead.Ingresos_3 || 0) +
-                                            (lead.Ingresos_4 || 0),
-                                        )}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-muted-foreground">
-                                      <Clock className="h-3 w-3" />
-                                      <span>{formatDate(lead.created_at)}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Quick Actions */}
-                              <TooltipProvider>
-                                <div className="flex items-center gap-1 ml-2">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 w-6 p-0 bg-transparent"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          if (lead.Correo) {
-                                            window.open(`mailto:${lead.Correo}`, "_blank")
-                                          }
-                                        }}
-                                        disabled={!lead.Correo}
-                                      >
-                                        <Mail className="h-3 w-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Enviar correo</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 w-6 p-0 bg-transparent"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          if (lead.Telefono) {
-                                            window.open(`https://wa.me/${lead.Telefono.replace(/\D/g, "")}`, "_blank")
-                                          }
-                                        }}
-                                        disabled={!lead.Telefono}
-                                      >
-                                        <WhatsAppIcon className="h-3 w-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Contactar por WhatsApp</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-
-                                  <DropdownMenu>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 w-6 p-0 bg-transparent"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                            }}
-                                          >
-                                            <MoreVertical className="h-3 w-3" />
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Cambiar estado</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          updateLeadStatus(lead.id, "Pendiente")
-                                        }}
-                                      >
-                                        Pendiente
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          updateLeadStatus(lead.id, "Validado")
-                                        }}
-                                      >
-                                        Validado
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          updateLeadStatus(lead.id, "Completado")
-                                        }}
-                                      >
-                                        Completado
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          updateLeadStatus(lead.id, "Rechazado")
-                                        }}
-                                      >
-                                        Rechazado
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          updateLeadStatus(lead.id, "Aceptado")
-                                        }}
-                                      >
-                                        Aceptado
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          updateLeadStatus(lead.id, "Descartado")
-                                        }}
-                                      >
-                                        Descartado
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </TooltipProvider>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    })
-                  ) : (
-                    <Card>
-                      <CardContent className="p-8 text-center">
-                        <p className="text-muted-foreground">No se encontraron leads</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </main>
-      {/* Lead Detail Dialog */}
       {selectedLead && (
         <>
           {/* Backdrop overlay */}
@@ -3756,6 +3794,7 @@ export default function LeadsPage() {
           </div>
         </>
       )}
+
       <Dialog open={isNewLeadDialogOpen} onOpenChange={setIsNewLeadDialogOpen}>
         <DialogContent className="w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[70vw] max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b">
@@ -4050,6 +4089,7 @@ export default function LeadsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
       <Dialog open={isReactivateDialogOpen} onOpenChange={setIsReactivateDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -4090,7 +4130,7 @@ export default function LeadsPage() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Aval Dialog */}
+
       <Dialog open={isAvalDialogOpen} onOpenChange={setIsAvalDialogOpen}>
         <DialogContent className="sm:max-w-lg z-[200]">
           <DialogHeader>
@@ -4218,9 +4258,7 @@ export default function LeadsPage() {
                         <div className="flex justify-between items-center pt-2 border-t">
                           <span className="text-muted-foreground">Tasa de esfuerzo:</span>
                           <span
-                            className={`font-bold ${
-                              avalCalculation.incomeRatio <= 40 ? "text-green-600" : "text-red-600"
-                            }`}
+                            className={`font-bold ${avalCalculation.incomeRatio <= 40 ? "text-green-600" : "text-red-600"}`}
                           >
                             {avalCalculation.incomeRatio.toFixed(1)}%
                           </span>
@@ -4266,7 +4304,7 @@ export default function LeadsPage() {
                           `- DNI/NIE del avalista\n` +
                           `- Justificante de ingresos del avalista\n` +
                           `- Declaración de la renta del avalista\n\n` +
-                          `Saludos cordiales`,
+                          `Saludos cordiales`
                       )
                       window.open(`mailto:${selectedLead.Correo}?subject=${subject}&body=${body}`, "_blank")
                       setIsAvalDialogOpen(false)
@@ -4282,18 +4320,24 @@ export default function LeadsPage() {
           )}
         </DialogContent>
       </Dialog>
-      {/* Communication Detail Dialog */}
+
       <Dialog open={isCommDialogOpen} onOpenChange={setIsCommDialogOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto z-[300]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedCommunication && isCommunicationSent(selectedCommunication) ? (
                 <>
-                  <span className="text-blue-600">📤 Correo Enviado</span>
+                  <span className="text-blue-600">
+                    📤 {/* Added emoji */}
+                    Correo Enviado
+                  </span>
                 </>
               ) : (
                 <>
-                  <span className="text-green-600">📥 Correo Recibido</span>
+                  <span className="text-green-600">
+                    📥 {/* Added emoji */}
+                    Correo Recibido
+                  </span>
                 </>
               )}
             </DialogTitle>
@@ -4355,7 +4399,7 @@ export default function LeadsPage() {
           )}
         </DialogContent>
       </Dialog>
-      {/* Communication Detail Dialog */}
+
       <Dialog open={bulkConfirmationOpen} onOpenChange={setBulkConfirmationOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -4433,7 +4477,6 @@ export default function LeadsPage() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Dialog open={isApprovalDialogOpen} ... has been moved to LeadApproveWrapper */}
-    </div>
+    </>
   )
 }
