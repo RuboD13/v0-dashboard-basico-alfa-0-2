@@ -4267,15 +4267,16 @@ export default function LeadsPage() {
                       setSelectedLead({ ...selectedLead, Estado: "Pedir Aval" })
 
                       const subject = encodeURIComponent("Solicitud de Datos de Aval")
-                      const body = encodeURIComponent(
-                        `Estimado/a ${selectedLead.Nombre},\n\n` +
+                        const body = encodeURIComponent(
+                          `Estimado/a ${selectedLead.Nombre},\n\n` +
                           `Necesitamos solicitar información adicional sobre su aval para continuar con el proceso de alquiler.\n\n` +
                           `Por favor, proporcione los siguientes documentos:\n` +
                           `- DNI/NIE del avalista\n` +
                           `- Justificante de ingresos del avalista\n` +
                           `- Declaración de la renta del avalista\n\n` +
-                          `Saludos cordiales`,
-                      )
+                          `Saludos cordiales`
+                        )
+
                       window.open(`mailto:${selectedLead.Correo}?subject=${subject}&body=${body}`, "_blank")
                       setIsAvalDialogOpen(false)
                     }
