@@ -248,7 +248,11 @@ export default function AnunciosPage() {
     }
 
     // Count "Datos Incompletos" status
-    const datosIncompletos = leads?.filter((l) => l.Estado === "Datos Incompletos").length || 0
+    const datosIncompletos =
+      leads?.filter((lead) => {
+        const estado = lead.Estado?.toLowerCase() || ""
+        return estado === "datos completos"
+      }).length || 0
     console.log("[v0] Datos Incompletos count:", datosIncompletos)
 
     const necesidadAval = leads?.filter((l) => l.Estado === "Pedir Aval").length || 0
@@ -302,7 +306,7 @@ export default function AnunciosPage() {
       .from("Clientes")
       .select("*")
       .eq("idi", anuncioId) // Assuming 'idi' is the foreign key to Anuncios
-      .eq("Estado", status)
+      .eq("Estado", "Datos Completos")
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -634,7 +638,7 @@ export default function AnunciosPage() {
 
       const query = supabase
         .from("Anuncios")
-        .select("ida, Referencia, Direccion, Precio, Portal, Descripcion, Activacion, Foto_Url, created_at")
+        .select("ida, Referencia, Direccion, Precio, Portal, Descripcion, Activacion, Foto_Url, created_at, Fecha_Activacion_Programada") // Added Fecha_Activacion_Programada
         .eq("usuario", inmobiliariaId) // Always filter by the logged-in agency's IDI
         .order("created_at", { ascending: false })
 
@@ -813,6 +817,7 @@ export default function AnunciosPage() {
           consumoMes: ejecuciones,
           fechaCreacion: fechaCreacion, // Add fechaCreacion
           descartados, // Added descartados
+          Fecha_Activacion_Programada: anuncio.Fecha_Activacion_Programada || null, // Pass scheduled date
           phaseMetrics: {
             aceptados: allLeads?.filter((lead) => lead.aceptado === true).length || 0,
             visitaPropuesta: allLeads?.filter((lead) => lead.visita_propuesta === true).length || 0,
@@ -947,7 +952,7 @@ export default function AnunciosPage() {
           .from("Clientes")
           .select("*")
           .eq("Inmueble", anuncio.referencia)
-          .eq("Estado", "Datos completos")
+          .eq("Estado", "Datos Completos")
           .order("created_at", { ascending: false })
 
         if (error) {
@@ -1173,7 +1178,7 @@ export default function AnunciosPage() {
           return estado === "datos completos"
         }).length || 0
 
-      const aceptados = allLeads?.filter((lead) => lead.aceptado === true).length || 0
+      constaceptados = allLeads?.filter((lead) => lead.aceptado === true).length || 0
       const visitaPropuesta = allLeads?.filter((lead) => lead.visita_propuesta === true).length || 0
       const visitaCompletada = allLeads?.filter((lead) => lead.visita_completada === true).length || 0
       const descartados = allLeads?.filter((lead) => lead.Estado === "Descartado").length || 0
@@ -1446,11 +1451,10 @@ export default function AnunciosPage() {
     }
 
     try {
-      // To enable this feature, run the SQL script: scripts/add-scheduled-activation-column.sql
       const { error } = await supabase
         .from("Anuncios")
         .update({
-          // Fecha_Activacion_Programada: scheduledDate, // Uncomment after running migration
+          Fecha_Activacion_Programada: new Date(scheduledDate).toISOString(),
           Activacion: "Pausado", // Ensure it's paused until scheduled time
         })
         .eq("ida", anuncioId)
@@ -1466,7 +1470,12 @@ export default function AnunciosPage() {
         setAnunciosCards((prev) =>
           prev.map((anuncio) =>
             anuncio.id === anuncioId
-              ? { ...anuncio, activacion: "Pausado", estado: "pausado" } // Removed Fecha_Activacion_Programada from local state
+              ? {
+                  ...anuncio,
+                  activacion: "Pausado",
+                  estado: "pausado",
+                  Fecha_Activacion_Programada: new Date(scheduledDate).toISOString(),
+                }
               : anuncio,
           ),
         )
@@ -1899,6 +1908,7 @@ export default function AnunciosPage() {
                                 variant="outline"
                                 className="h-7 text-xs px-2 bg-transparent"
                                 onClick={() => handleOpenScheduleDialog(anuncio.id)}
+                                disabled={anuncio.estado === "archivado"}
                               >
                                 <Calendar className="h-3 w-3 mr-1" />
                                 Programar
@@ -1967,7 +1977,7 @@ export default function AnunciosPage() {
                             <Switch
                               checked={anuncio.estado === "activo"}
                               onCheckedChange={() => handleToggleEstado(anuncio.id, anuncio.activacion)}
-                              disabled={processingId === anuncio.id}
+                              disabled={processingId === anuncio.id || anuncio.estado === "archivado"}
                               className="scale-125"
                             />
                           </div>
@@ -2349,7 +2359,7 @@ export default function AnunciosPage() {
           </DialogContent>
         </Dialog>
 
-        {/* ... existing processing drawer ... */}
+        {/* Processing Drawer */}
         <Sheet open={showProcessingDrawer} onOpenChange={setShowProcessingDrawer}>
           <SheetContent side="right" className="w-[400px] sm:w-[540px]">
             <SheetHeader>
