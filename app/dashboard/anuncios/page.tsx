@@ -803,7 +803,7 @@ export default function AnunciosPage() {
           fotoUrl: anuncio.Foto_Url || "",
           nuevosHoy,
           emailsEnviados,
-          datosCompletos: datosCompletosCount, // This is where the lint error was. It is now declared correctly
+          datosCompletos: datosCompletosCount,
           leadsTotales,
           aLaEspera,
           tiempoAhorrado,
@@ -1178,7 +1178,7 @@ export default function AnunciosPage() {
           return estado === "datos completos"
         }).length || 0
 
-      constaceptados = allLeads?.filter((lead) => lead.aceptado === true).length || 0
+      const aceptados = allLeads?.filter((lead) => lead.aceptado === true).length || 0
       const visitaPropuesta = allLeads?.filter((lead) => lead.visita_propuesta === true).length || 0
       const visitaCompletada = allLeads?.filter((lead) => lead.visita_completada === true).length || 0
       const descartados = allLeads?.filter((lead) => lead.Estado === "Descartado").length || 0
