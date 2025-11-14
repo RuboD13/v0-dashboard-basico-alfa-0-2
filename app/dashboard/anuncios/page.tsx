@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { useInmobiliaria } from "@/lib/contexts/inmobiliaria-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -25,27 +25,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/hooks/use-toast"
-import {
-  Target,
-  CheckCircle,
-  Settings,
-  Loader2,
-  MoreVertical,
-  Calendar,
-  Plus,
-  Eye,
-  Edit,
-  ShoppingCart,
-  BarChart3,
-  X,
-  Archive,
-  UserCheck,
-  Lock,
-  LockOpen,
-  AlertCircle,
-  Trash2,
-} from "lucide-react"
+import { Target, CheckCircle, Settings, Loader2, MoreVertical, Calendar, Plus, Eye, Edit, ShoppingCart, BarChart3, X, Archive, UserCheck, Lock, LockOpen, AlertCircle, Trash2, Info } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover" // Added Popover imports
 import { getPlanData, formatPlanValue } from "@/lib/plan-data"
+import { createBrowserClient } from "@/lib/supabase/client" // Added for createBrowserClient
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts" // Added recharts imports
 
 interface AnuncioCard {
   id: string
@@ -79,6 +63,15 @@ interface AnuncioCard {
   incompletosAlto?: boolean
   necesidadAval?: boolean
   Fecha_Activacion_Programada?: string | null // Added for scheduled activation
+  fechaCreacion?: string // Added for activation date in stats
+  // Phase metrics from database
+  phaseMetrics?: {
+    aceptados: number
+    visitaPropuesta: number
+    visitaCompletada: number
+  }
+  // Added descartados field
+  descartados?: number
 }
 
 interface CreationStep {
@@ -165,6 +158,27 @@ export default function AnunciosPage() {
 
   const [isReferenciaEditable, setIsReferenciaEditable] = useState(false)
 
+  const [trendTimeframe, setTrendTimeframe] = useState<"24h" | "7d" | "1m">("7d")
+  const [trendData, setTrendData] = useState<any[]>([]) // Add state to store trend data
+  const [loadingTrendData, setLoadingTrendData] = useState(false) // Add state for loading trend data
+  const [phaseLeadsDialog, setPhaseLeadsDialog] = useState<{
+    open: boolean
+    status: string
+    leads: any[]
+  }>({ open: false, status: "", leads: [] })
+  const [qualityMetrics, setQualityMetrics] = useState<{
+    leadsRebotados: number
+    datosIncompletos: number
+    necesidadAval: number
+  }>({
+    leadsRebotados: 0,
+    datosIncompletos: 0,
+    necesidadAval: 0,
+  })
+
+  // Add isStatsModalOpen state to track the visibility of the stats modal
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
+
   const { inmobiliariaId, loading: inmobiliariaLoading } = useInmobiliaria()
 
   const router = useRouter()
@@ -172,6 +186,242 @@ export default function AnunciosPage() {
 
   // Variables needed for linting fixes
   const [creatingAnuncio, setCreatingAnuncio] = useState(false)
+
+  useEffect(() => {
+    if (!inmobiliariaLoading && inmobiliariaId !== null) {
+      checkUser()
+      fetchAnuncios()
+      fetchPlanLimit()
+      fetchAvailablePlans()
+    }
+  }, [inmobiliariaId, inmobiliariaLoading])
+
+  useEffect(() => {
+    if (selectedAnuncioForStats && showStatsModal) {
+      // Fetch trend data when modal is open
+      setLoadingTrendData(true)
+      calculateTrendData(selectedAnuncioForStats, trendTimeframe).then((data) => {
+        setTrendData(data)
+        setLoadingTrendData(false)
+      })
+    }
+  }, [selectedAnuncioForStats, trendTimeframe, showStatsModal]) // Added showStatsModal to dependencies
+
+  useEffect(() => {
+    if (selectedAnuncioForStats && showStatsModal) {
+      fetchQualityMetrics(selectedAnuncioForStats.referencia, trendTimeframe).then((metrics) => {
+        console.log("[v0] Quality metrics fetched:", metrics)
+        setQualityMetrics(metrics)
+      })
+    }
+  }, [selectedAnuncioForStats, trendTimeframe, showStatsModal])
+
+  const fetchQualityMetrics = async (anuncioReferencia: string, timeframe: "24h" | "7d" | "1m") => {
+    const supabase = createBrowserClient()
+
+    // Calculate date range based on timeframe
+    const now = new Date()
+    let startDate: Date
+
+    if (timeframe === "24h") {
+      startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    } else if (timeframe === "7d") {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    } else {
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    }
+
+    console.log("[v0] Fetching quality metrics for referencia:", anuncioReferencia, "timeframe:", timeframe)
+
+    // Get all leads for this anuncio in the timeframe
+    const { data: leads, error: leadsError } = await supabase
+      .from("Clientes")
+      .select('IDC, Estado, "Pedir Aval", created_at')
+      .eq("Inmueble", anuncioReferencia)
+      .gte("created_at", startDate.toISOString())
+
+    console.log("[v0] Leads found for quality metrics:", leads?.length || 0, "Error:", leadsError)
+
+    if (leadsError) {
+      console.error("[v0] Error fetching leads for quality metrics:", leadsError)
+      return { leadsRebotados: 0, datosIncompletos: 0, necesidadAval: 0 }
+    }
+
+    // Count "Datos Incompletos" status
+    const datosIncompletos = leads?.filter((l) => l.Estado === "Datos Incompletos").length || 0
+    console.log("[v0] Datos Incompletos count:", datosIncompletos)
+
+    const necesidadAval = leads?.filter((l) => l.Estado === "Pedir Aval").length || 0
+    console.log("[v0] Necesidad Aval count:", necesidadAval)
+    // </CHANGE>
+
+    // Calculate "Leads Rebotados" - leads with no communications (emails or whatsapp)
+    let leadsRebotados = 0
+    if (leads && leads.length > 0) {
+      for (const lead of leads) {
+        // Check if this lead has any emails
+        const { data: emails } = await supabase.from("Correos").select("id").eq("idc", lead.IDC).limit(1)
+
+        // Check if this lead has any whatsapp messages
+        const { data: whatsapp } = await supabase.from("Whatsapp").select("id").eq("IDC", lead.IDC).limit(1)
+
+        // If no communications at all, count as rebotado
+        if ((!emails || emails.length === 0) && (!whatsapp || whatsapp.length === 0)) {
+          leadsRebotados++
+        }
+      }
+    }
+    console.log("[v0] Leads Rebotados count:", leadsRebotados)
+
+    return { leadsRebotados, datosIncompletos, necesidadAval }
+  }
+
+  const fetchLeadsByPhase = async (
+    anuncioRef: string,
+    phase: "aceptado" | "visita_propuesta" | "visita_completada",
+  ) => {
+    const supabase = createBrowserClient()
+    const { data, error } = await supabase
+      .from("Clientes")
+      .select("*")
+      .ilike("Inmueble", anuncioRef) // Use Inmueble field that contains anuncio.referencia
+      .eq(phase, true) // Query the boolean field
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error(`[v0] Error fetching ${phase} leads:`, error)
+      return []
+    }
+    console.log(`[v0] Fetched ${data?.length || 0} leads for phase ${phase}`)
+    return data || []
+  }
+
+  const fetchLeadsByStatus = async (anuncioId: string, status: string) => {
+    const supabase = createBrowserClient() // Use createBrowserClient here
+    const { data, error } = await supabase
+      .from("Clientes")
+      .select("*")
+      .eq("idi", anuncioId) // Assuming 'idi' is the foreign key to Anuncios
+      .eq("Estado", status)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("[v0] Error fetching leads by status:", error)
+      return []
+    }
+    return data || []
+  }
+
+  const handlePhaseMetricClick = async (phase: "aceptado" | "visita_propuesta" | "visita_completada") => {
+    if (!selectedAnuncioForStats) return
+
+    const leads = await fetchLeadsByPhase(selectedAnuncioForStats.referencia, phase)
+
+    const statusLabels = {
+      aceptado: "Candidatos Aprobados",
+      visita_propuesta: "Visita Propuesta",
+      visita_completada: "Visita Completada",
+    }
+
+    setPhaseLeadsDialog({
+      open: true,
+      status: statusLabels[phase],
+      leads,
+    })
+  }
+
+  const calculateTrendData = async (anuncio: any, timeframe: "24h" | "7d" | "1m") => {
+    const supabase = createBrowserClient()
+    const now = new Date()
+
+    if (timeframe === "24h") {
+      // Last 24 hours - hourly buckets
+      const hourlyData: { hour: string; count: number; isCurrent: boolean }[] = []
+
+      for (let i = 23; i >= 0; i--) {
+        const hourStart = new Date(now.getTime() - i * 60 * 60 * 1000)
+        const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000)
+
+        const { data, error } = await supabase
+          .from("Clientes")
+          .select("IDC")
+          .ilike("Inmueble", anuncio.referencia)
+          .gte("created_at", hourStart.toISOString())
+          .lt("created_at", hourEnd.toISOString())
+
+        const hourLabel = hourStart.getHours().toString().padStart(2, "0") + ":00"
+        const isCurrent = i === 0 // Last hour is current
+
+        hourlyData.push({
+          hour: hourLabel,
+          count: data?.length || 0,
+          isCurrent,
+        })
+      }
+
+      return hourlyData
+    } else if (timeframe === "7d") {
+      // Last 7 days - daily buckets
+      const dailyData: { day: string; count: number }[] = []
+
+      for (let i = 6; i >= 0; i--) {
+        const dayStart = new Date(now)
+        dayStart.setDate(dayStart.getDate() - i)
+        dayStart.setHours(0, 0, 0, 0)
+
+        const dayEnd = new Date(dayStart)
+        dayEnd.setHours(23, 59, 59, 999)
+
+        const { data, error } = await supabase
+          .from("Clientes")
+          .select("IDC")
+          .ilike("Inmueble", anuncio.referencia)
+          .gte("created_at", dayStart.toISOString())
+          .lte("created_at", dayEnd.toISOString())
+
+        const dayLabel = dayStart.toLocaleDateString("es-ES", { weekday: "short", day: "numeric" })
+
+        dailyData.push({
+          day: dayLabel,
+          count: data?.length || 0,
+        })
+      }
+
+      return dailyData
+    } else {
+      // Last 4 weeks - weekly buckets with month identification
+      const weeklyData: { week: string; count: number }[] = []
+
+      for (let i = 3; i >= 0; i--) {
+        const weekEnd = new Date(now)
+        weekEnd.setDate(weekEnd.getDate() - i * 7)
+        weekEnd.setHours(23, 59, 59, 999)
+
+        const weekStart = new Date(weekEnd)
+        weekStart.setDate(weekStart.getDate() - 6)
+        weekStart.setHours(0, 0, 0, 0)
+
+        const { data, error } = await supabase
+          .from("Clientes")
+          .select("IDC")
+          .ilike("Inmueble", anuncio.referencia)
+          .gte("created_at", weekStart.toISOString())
+          .lte("created_at", weekEnd.toISOString())
+
+        // Determine week number in the month
+        const monthName = weekStart.toLocaleDateString("es-ES", { month: "short" })
+        const weekInMonth = Math.ceil(weekStart.getDate() / 7)
+        const weekLabel = `${weekInMonth}ª ${monthName}`
+
+        weeklyData.push({
+          week: weekLabel,
+          count: data?.length || 0,
+        })
+      }
+
+      return weeklyData
+    }
+  }
 
   const handleOpenArchiveDialog = (anuncio: AnuncioCard) => {
     setArchivingAnuncio(anuncio)
@@ -249,15 +499,6 @@ export default function AnunciosPage() {
       })
     }
   }
-
-  useEffect(() => {
-    if (!inmobiliariaLoading && inmobiliariaId !== null) {
-      checkUser()
-      fetchAnuncios()
-      fetchPlanLimit()
-      fetchAvailablePlans()
-    }
-  }, [inmobiliariaId, inmobiliariaLoading])
 
   const fetchAvailablePlans = async () => {
     try {
@@ -436,7 +677,9 @@ export default function AnunciosPage() {
 
         const { data: allLeads, error: leadsError } = await supabase
           .from("Clientes")
-          .select("id, created_at, Estado, Correo, Nombre, Telefono, Ingresos") // Added fields for lead details
+          .select(
+            "IDC, Estado, created_at, Correo, Nombre, Telefono, Ingresos, aceptado, visita_propuesta, visita_completada",
+          ) // Added fields for lead details
           .ilike("Inmueble", referencia)
 
         if (leadsError) {
@@ -453,7 +696,12 @@ export default function AnunciosPage() {
           }).length || 0
 
         const datosCompletosCount =
-          allLeads?.filter((lead) => lead.Estado === "Datos completos" || lead.Estado === "datos completos").length || 0
+          allLeads?.filter((lead) => {
+            const estado = lead.Estado?.toLowerCase() || ""
+            return estado === "datos completos"
+          }).length || 0
+
+        console.log("[v0] Datos Completos for anuncio", anuncio.ida, ":", datosCompletosCount)
 
         const aLaEspera = leadsTotales - datosCompletosCount
 
@@ -530,6 +778,16 @@ export default function AnunciosPage() {
 
         const ejecuciones = leadsTotales + emailsEnviados
 
+        // Add fechaCreacion for stats modal
+        const fechaCreacion = anuncio.created_at ? new Date(anuncio.created_at).toLocaleDateString("es-ES") : "N/A"
+
+        // Added descartados calculation
+        const descartados =
+          allLeads?.filter((lead) => {
+            const estado = lead.Estado?.toLowerCase() || ""
+            return estado === "descartado"
+          }).length || 0
+
         cards.push({
           id: anuncio.ida, // Use "ida" instead of "id"
           referencia,
@@ -541,7 +799,7 @@ export default function AnunciosPage() {
           fotoUrl: anuncio.Foto_Url || "",
           nuevosHoy,
           emailsEnviados,
-          datosCompletos: datosCompletosCount,
+          datosCompletos: datosCompletosCount, // This is where the lint error was. It is now declared correctly
           leadsTotales,
           aLaEspera,
           tiempoAhorrado,
@@ -553,6 +811,13 @@ export default function AnunciosPage() {
           sparklineData,
           ejecuciones,
           consumoMes: ejecuciones,
+          fechaCreacion: fechaCreacion, // Add fechaCreacion
+          descartados, // Added descartados
+          phaseMetrics: {
+            aceptados: allLeads?.filter((lead) => lead.aceptado === true).length || 0,
+            visitaPropuesta: allLeads?.filter((lead) => lead.visita_propuesta === true).length || 0,
+            visitaCompletada: allLeads?.filter((lead) => lead.visita_completada === true).length || 0,
+          },
         })
 
         totalLeadsSum += leadsTotales
@@ -890,15 +1155,68 @@ export default function AnunciosPage() {
   const handleShowStats = async (anuncio: AnuncioCard) => {
     console.log(`[v0] Loading statistics for anuncio ${anuncio.id}`)
 
-    // Populate dummy stats for demonstration
-    const dummyStats = {
-      rebotesAltos: Math.random() > 0.5,
-      incompletosAlto: Math.random() > 0.7,
-      necesidadAval: Math.random() > 0.3,
-    }
+    try {
+      // Fetch real metrics from database
+      const { data: allLeads, error: leadsError } = await supabase
+        .from("Clientes")
+        .select("Estado,aceptado,visita_propuesta,visita_completada") // Select boolean fields
+        .ilike("Inmueble", anuncio.referencia)
 
-    setSelectedAnuncioForStats({ ...anuncio, ...dummyStats })
-    setShowStatsModal(true)
+      if (leadsError) {
+        console.error("[v0] Error fetching leads for stats:", leadsError)
+      }
+
+      // Calculate real metrics
+      const datosCompletosCount =
+        allLeads?.filter((lead) => {
+          const estado = lead.Estado?.toLowerCase() || ""
+          return estado === "datos completos"
+        }).length || 0
+
+      const aceptados = allLeads?.filter((lead) => lead.aceptado === true).length || 0
+      const visitaPropuesta = allLeads?.filter((lead) => lead.visita_propuesta === true).length || 0
+      const visitaCompletada = allLeads?.filter((lead) => lead.visita_completada === true).length || 0
+      const descartados = allLeads?.filter((lead) => lead.Estado === "Descartado").length || 0
+
+      console.log(
+        "[v0] Stats fetched - Datos Completos:",
+        datosCompletosCount,
+        "Aceptados:",
+        aceptados,
+        "Visita Propuesta:",
+        visitaPropuesta,
+        "Visita Completada:",
+        visitaCompletada,
+        "Descartados:",
+        descartados,
+      )
+
+      // Populate stats with real data
+      const statsWithRealData = {
+        ...anuncio,
+        datosCompletos: datosCompletosCount,
+        descartados,
+        phaseMetrics: {
+          aceptados,
+          visitaPropuesta,
+          visitaCompletada,
+        },
+        rebotesAltos: Math.random() > 0.5,
+        incompletosAlto: Math.random() > 0.7,
+        necesidadAval: Math.random() > 0.3,
+      }
+
+      setSelectedAnuncioForStats(statsWithRealData)
+      setShowStatsModal(true)
+      setIsStatsModalOpen(true) // Set the modal state to true
+    } catch (err) {
+      console.error("[v0] Error in handleShowStats:", err)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las estadísticas",
+        variant: "destructive",
+      })
+    }
   }
 
   // New functions for managing FAQs
@@ -1501,7 +1819,7 @@ export default function AnunciosPage() {
           <div className="space-y-6">
             <div className="flex gap-3">
               <button
-                className="flex items-center gap-2 px-4 py-1.5 rounded-lg border-2 border-dashed border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/15 hover:border-primary/50 transition-all cursor-pointer group"
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg border-2 border-dashed border-primary/30 bg-gradient-to-r from-primary/5 to-primary/15 hover:from-primary/10 hover:to-primary/15 hover:border-primary/50 transition-all cursor-pointer group"
                 onClick={() => setShowCreationModal(true)}
               >
                 <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors shrink-0">
@@ -1702,11 +2020,14 @@ export default function AnunciosPage() {
                           <div className="flex items-center justify-between mb-0.5">
                             <span className="text-xs">Ejecuciones: {anuncio.ejecuciones}</span>
                             <span className="text-xs">
-                              {((anuncio.ejecuciones / planLimit) * 100).toFixed(1)}% del plan
+                              {planLimit > 0 && ((anuncio.ejecuciones / planLimit) * 100).toFixed(1)}% del plan
                             </span>
                           </div>
 
-                          <Progress value={(anuncio.ejecuciones / planLimit) * 100} className="h-1" />
+                          <Progress
+                            value={planLimit > 0 ? (anuncio.ejecuciones / planLimit) * 100 : 0}
+                            className="h-1"
+                          />
                         </div>
 
                         {/* Quick Actions */}
@@ -2267,7 +2588,13 @@ export default function AnunciosPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={showStatsModal} onOpenChange={setShowStatsModal}>
+        <Dialog
+          open={showStatsModal}
+          onOpenChange={(open) => {
+            setShowStatsModal(open)
+            setIsStatsModalOpen(open) // Update state when modal opens/closes
+          }}
+        >
           <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Estadísticas - {selectedAnuncioForStats?.referencia}</DialogTitle>
@@ -2290,60 +2617,226 @@ export default function AnunciosPage() {
                     </div>
                     <div className="text-center p-4 bg-purple-50 rounded-lg">
                       <div className="text-2xl font-bold text-purple-600">
-                        {selectedAnuncioForStats.porcentajeCompletos.toFixed(1)}%
+                        {selectedAnuncioForStats.leadsTotales > 0
+                          ? (
+                              (selectedAnuncioForStats.datosCompletos / selectedAnuncioForStats.leadsTotales) *
+                              100
+                            ).toFixed(1)
+                          : "0.0"}
+                        %
                       </div>
                       <div className="text-sm text-purple-800">Tasa Conversión</div>
                     </div>
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">{selectedAnuncioForStats.healthScore}</div>
-                      <div className="text-sm text-orange-800">Health Score</div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="text-2xl font-bold text-gray-600">{selectedAnuncioForStats.descartados || 0}</div>
+                      <div className="text-sm text-gray-700">Descartados</div>
                     </div>
                   </div>
 
-                  {/* Tendencia Semanal */}
                   <div className="space-y-3">
-                    <h4 className="font-semibold">Tendencia de Leads (7 días)</h4>
+                    <h4 className="font-semibold">Preparados para la fase de visita</h4>
+                    <div className="grid grid-cols-3 gap-3">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between hover:bg-green-50 h-auto p-4 flex flex-col items-center gap-2 bg-transparent"
+                        onClick={() => handlePhaseMetricClick("aceptado")}
+                      >
+                        <span className="text-sm">Candidatos Aprobados</span>
+                        <span className="text-lg font-bold text-green-600">
+                          {selectedAnuncioForStats.phaseMetrics?.aceptados || 0}
+                        </span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between hover:bg-blue-50 h-auto p-4 flex flex-col items-center gap-2 bg-transparent"
+                        onClick={() => handlePhaseMetricClick("visita_propuesta")}
+                      >
+                        <span className="text-sm">Visita Propuesta</span>
+                        <span className="text-lg font-bold text-blue-600">
+                          {selectedAnuncioForStats.phaseMetrics?.visitaPropuesta || 0}
+                        </span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between hover:bg-purple-50 h-auto p-4 flex flex-col items-center gap-2 bg-transparent"
+                        onClick={() => handlePhaseMetricClick("visita_completada")}
+                      >
+                        <span className="text-sm">Visita Completada</span>
+                        <span className="text-lg font-bold text-purple-600">
+                          {selectedAnuncioForStats.phaseMetrics?.visitaCompletada || 0}
+                        </span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold">Tendencia de Leads</h4>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant={trendTimeframe === "24h" ? "default" : "outline"}
+                          onClick={() => setTrendTimeframe("24h")}
+                          className="h-7 text-xs"
+                        >
+                          24h
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={trendTimeframe === "7d" ? "default" : "outline"}
+                          onClick={() => setTrendTimeframe("7d")}
+                          className="h-7 text-xs"
+                        >
+                          7 días
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={trendTimeframe === "1m" ? "default" : "outline"}
+                          onClick={() => setTrendTimeframe("1m")}
+                          className="h-7 text-xs"
+                        >
+                          1 mes
+                        </Button>
+                      </div>
+                    </div>
                     <div className="bg-muted p-4 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-muted-foreground">Actividad diaria</span>
-                        <div className="text-green-600">
-                          <Sparkline data={selectedAnuncioForStats.sparklineData} />
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-muted-foreground">
+                          {trendTimeframe === "24h" && "Últimas 24 horas"}
+                          {trendTimeframe === "7d" && "Últimos 7 días"}
+                          {trendTimeframe === "1m" && "Últimas 4 semanas"}
+                        </span>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          <span>Activado: {selectedAnuncioForStats.fechaCreacion || "N/A"}</span>
                         </div>
                       </div>
-                      <div className="grid grid-cols-7 gap-1 text-xs">
-                        {selectedAnuncioForStats.sparklineData.map((value, index) => (
-                          <div key={index} className="text-center">
-                            <div className="font-medium">{value}</div>
-                            <div className="text-muted-foreground">D{index + 1}</div>
+
+                      {loadingTrendData ? (
+                        <div className="flex items-center justify-center h-32">
+                          <div className="text-sm text-muted-foreground">Cargando datos...</div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Chart */}
+                          <div className="h-32">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={trendData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                                <XAxis
+                                  dataKey={trendTimeframe === "24h" ? "hour" : trendTimeframe === "7d" ? "day" : "week"}
+                                  tick={{ fontSize: 10 }}
+                                  stroke="hsl(var(--muted-foreground))"
+                                />
+                                <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: "hsl(var(--background))",
+                                    border: "1px solid hsl(var(--border))",
+                                    borderRadius: "6px",
+                                  }}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="count"
+                                  stroke="hsl(var(--primary))"
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                  activeDot={{ r: 5 }}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
                           </div>
-                        ))}
-                      </div>
+
+                          {/* Data Grid */}
+                          <div
+                            className={`grid gap-2 text-xs ${
+                              trendTimeframe === "24h"
+                                ? "grid-cols-12"
+                                : trendTimeframe === "7d"
+                                  ? "grid-cols-7"
+                                  : "grid-cols-4"
+                            }`}
+                          >
+                            {trendData.map((item, index) => {
+                              const isCurrent = trendTimeframe === "24h" && item.isCurrent
+                              return (
+                                <div
+                                  key={index}
+                                  className={`text-center p-2 rounded ${
+                                    isCurrent ? "bg-primary text-primary-foreground font-bold" : "bg-background"
+                                  }`}
+                                >
+                                  <div className="font-medium text-sm">{item.count}</div>
+                                  <div
+                                    className={`text-xs ${isCurrent ? "text-primary-foreground" : "text-muted-foreground"}`}
+                                  >
+                                    {trendTimeframe === "24h" && item.hour}
+                                    {trendTimeframe === "7d" && item.day}
+                                    {trendTimeframe === "1m" && item.week}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Análisis de Calidad */}
                   <div className="space-y-3">
                     <h4 className="font-semibold">Análisis de Calidad</h4>
-                    <div className="grid gap-3">
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <span className="text-sm">Rebotes de email</span>
-                        <Badge variant={selectedAnuncioForStats.rebotesAltos ? "destructive" : "secondary"}>
-                          {selectedAnuncioForStats.rebotesAltos ? "Alto" : "Normal"}
-                        </Badge>
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* Leads Rebotados */}
+                      <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+                        <div className="flex items-center justify-center gap-1 mb-2">
+                          <span className="text-xs font-medium text-orange-800">Leads Rebotados</span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="inline-flex items-center justify-center rounded-full w-4 h-4 bg-orange-200 hover:bg-orange-300 transition-colors">
+                                <Info className="h-3 w-3 text-orange-700" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80" side="top">
+                              <div className="space-y-2">
+                                <h4 className="font-semibold text-sm">¿Qué son los Leads Rebotados?</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Leads que han entrado en tu flujo pero no han respondido ni interactuado contigo ni
+                                  una sola vez. No tienen ningún correo ni mensaje de WhatsApp registrado.
+                                </p>
+                                <div className="pt-2 border-t">
+                                  <p className="text-sm font-medium mb-1">Cómo usarlo:</p>
+                                  <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-4">
+                                    <li>Revisa si el anuncio está atrayendo el público correcto</li>
+                                    <li>Considera ajustar el mensaje inicial de contacto</li>
+                                    <li>Verifica que los canales de comunicación funcionan correctamente</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div className="text-3xl font-bold text-orange-600">{qualityMetrics.leadsRebotados}</div>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <span className="text-sm">Datos incompletos</span>
-                        <Badge variant={selectedAnuncioForStats.incompletosAlto ? "destructive" : "secondary"}>
-                          {selectedAnuncioForStats.incompletosAlto ? "Alto" : "Normal"}
-                        </Badge>
+
+                      {/* Datos Incompletos */}
+                      <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <div className="text-xs font-medium text-yellow-800 mb-2">Datos Incompletos</div>
+                        <div className="text-3xl font-bold text-yellow-600">{qualityMetrics.datosIncompletos}</div>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <span className="text-sm">Necesidad de aval</span>
-                        <Badge variant={selectedAnuncioForStats.necesidadAval ? "destructive" : "secondary"}>
-                          {selectedAnuncioForStats.necesidadAval ? "Requerido" : "No requerido"}
-                        </Badge>
+
+                      {/* Necesidad de Aval */}
+                      <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                        <div className="text-xs font-medium text-purple-800 mb-2">Necesidad de Aval</div>
+                        <div className="text-3xl font-bold text-purple-600">{qualityMetrics.necesidadAval}</div>
                       </div>
                     </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Métricas calculadas para el período: {trendTimeframe === "24h" && "últimas 24 horas"}
+                      {trendTimeframe === "7d" && "últimos 7 días"}
+                      {trendTimeframe === "1m" && "último mes"}
+                    </p>
                   </div>
 
                   {/* Consumo y Rendimiento */}
@@ -2355,9 +2848,13 @@ export default function AnunciosPage() {
                           <span>Ejecuciones del mes</span>
                           <span className="font-medium">{selectedAnuncioForStats.ejecuciones}</span>
                         </div>
-                        <Progress value={(selectedAnuncioForStats.ejecuciones / planLimit) * 100} className="h-2" />
+                        <Progress
+                          value={planLimit > 0 ? (selectedAnuncioForStats.ejecuciones / planLimit) * 100 : 0}
+                          className="h-2"
+                        />
                         <div className="text-xs text-muted-foreground">
-                          {((selectedAnuncioForStats.ejecuciones / planLimit) * 100).toFixed(1)}% del plan utilizado
+                          {planLimit > 0 ? ((selectedAnuncioForStats.ejecuciones / planLimit) * 100).toFixed(1) : "N/A"}
+                          % del plan utilizado
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -2388,6 +2885,46 @@ export default function AnunciosPage() {
             </div>
             <div className="flex justify-end">
               <Button variant="outline" onClick={() => setShowStatsModal(false)}>
+                Cerrar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={phaseLeadsDialog.open}
+          onOpenChange={(open) => setPhaseLeadsDialog({ ...phaseLeadsDialog, open })}
+        >
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Leads con estado: {phaseLeadsDialog.status}</DialogTitle>
+              <DialogDescription>
+                Lista de leads del anuncio {selectedAnuncioForStats?.referencia} con este estado
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-4">
+              {phaseLeadsDialog.leads.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No hay leads con este estado</p>
+              ) : (
+                phaseLeadsDialog.leads.map((lead) => (
+                  <Card key={lead.idc}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <div className="font-medium">{lead.Nombre || "Sin nombre"}</div>
+                          <div className="text-sm text-muted-foreground">{lead.Correo || "Sin correo"}</div>
+                          <div className="text-sm text-muted-foreground">{lead.Telefono || "Sin teléfono"}</div>
+                        </div>
+                        <Badge variant="secondary">{lead.Estado}</Badge>
+                      </div>
+                      {lead.Portal && <div className="mt-2 text-xs text-muted-foreground">Portal: {lead.Portal}</div>}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setPhaseLeadsDialog({ open: false, status: "", leads: [] })}>
                 Cerrar
               </Button>
             </div>
@@ -2535,7 +3072,7 @@ export default function AnunciosPage() {
               </DialogTitle>
               <DialogDescription>
                 <div className="space-y-3">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="bg-red-50 border border-red-200 rounded-md p-3">
                     <div className="text-red-800 font-semibold mb-1">⚠️ ADVERTENCIA: Esta acción es irreversible</div>
                     <div className="text-red-700 text-sm">
                       El anuncio "{deletingAnuncio?.referencia}" será eliminado permanentemente de la base de datos.
