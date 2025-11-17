@@ -175,6 +175,18 @@ export default function AnunciosPage() {
     datosIncompletos: 0,
     necesidadAval: 0,
   })
+  const [visitDateDialog, setVisitDateDialog] = useState<{
+    open: boolean
+    leadId: string
+    leadName: string
+    selectedDate: string
+  }>({
+    open: false,
+    leadId: "",
+    leadName: "",
+    selectedDate: "",
+  })
+  // </CHANGE>
 
   // Add isStatsModalOpen state to track the visibility of the stats modal
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
@@ -237,7 +249,7 @@ export default function AnunciosPage() {
     const { data: leads, error: leadsError } = await supabase
       .from("Clientes")
       .select('IDC, Estado, "Pedir Aval", created_at')
-      .eq("Inmueble", anuncioReferencia)
+      .ilike("Inmueble", anuncioReferencia)
       .gte("created_at", startDate.toISOString())
 
     console.log("[v0] Leads found for quality metrics:", leads?.length || 0, "Error:", leadsError)
@@ -264,7 +276,7 @@ export default function AnunciosPage() {
     if (leads && leads.length > 0) {
       for (const lead of leads) {
         // Check if this lead has any emails
-        const { data: emails } = await supabase.from("Correos").select("id").eq("idc", lead.IDC).limit(1)
+        const { data: emails } = await supabase.from("Correos").select("id").eq("IDC", lead.IDC).limit(1)
 
         // Check if this lead has any whatsapp messages
         const { data: whatsapp } = await supabase.from("Whatsapp").select("id").eq("IDC", lead.IDC).limit(1)
@@ -682,8 +694,8 @@ export default function AnunciosPage() {
         const { data: allLeads, error: leadsError } = await supabase
           .from("Clientes")
           .select(
-            "IDC, Estado, created_at, Correo, Nombre, Telefono, Ingresos, aceptado, visita_propuesta, visita_completada",
-          ) // Added fields for lead details
+            "IDC, Estado, created_at, Correo, Nombre, Telefono, Ingresos, aceptado, visita_propuesta, visita_completada, fecha_de_visita",
+          ) // Added fields for lead details and fecha_de_visita
           .ilike("Inmueble", referencia)
 
         if (leadsError) {
@@ -896,9 +908,9 @@ export default function AnunciosPage() {
     router.push(url)
   }
 
-  const handleProgramarVisita = async (leadId: string) => {
+  const handleProgramarVisitaUpdate = async (leadId: string) => {
     try {
-      const { error } = await supabase.from("Clientes").update({ Estado: "Programar visita" }).eq("idc", leadId)
+      const { error } = await supabase.from("Clientes").update({ Estado: "Programar visita" }).eq("IDC", leadId)
 
       if (error) {
         console.log("[v0] Error updating lead status:", error)
@@ -1164,7 +1176,7 @@ export default function AnunciosPage() {
       // Fetch real metrics from database
       const { data: allLeads, error: leadsError } = await supabase
         .from("Clientes")
-        .select("Estado,aceptado,visita_propuesta,visita_completada") // Select boolean fields
+        .select("Estado,aceptado,visita_propuesta,visita_completada,IDC,Nombre,Correo,Telefono") // Select boolean fields and identifying fields
         .ilike("Inmueble", anuncio.referencia)
 
       if (leadsError) {
@@ -1206,6 +1218,7 @@ export default function AnunciosPage() {
           visitaPropuesta,
           visitaCompletada,
         },
+        // These are placeholders, actual calculation might be needed or removed
         rebotesAltos: Math.random() > 0.5,
         incompletosAlto: Math.random() > 0.7,
         necesidadAval: Math.random() > 0.3,
@@ -1638,6 +1651,67 @@ export default function AnunciosPage() {
 
   const handleOpenPlanSelector = () => {
     setShowPlanSelector(true)
+  }
+
+  const handleProgramarVisita = (leadId: string, leadName: string) => {
+    setVisitDateDialog({
+      open: true,
+      leadId: leadId,
+      leadName: leadName,
+      selectedDate: "",
+    })
+  }
+
+  const handleSaveVisitDate = async () => {
+    if (!visitDateDialog.selectedDate || !visitDateDialog.leadId) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona una fecha y hora",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("Clientes")
+        .update({
+          fecha_de_visita: new Date(visitDateDialog.selectedDate).toISOString(),
+        })
+        .eq("IDC", visitDateDialog.leadId)
+
+      if (error) {
+        console.error("[v0] Error saving visit date:", error)
+        toast({
+          title: "Error",
+          description: "No se pudo guardar la fecha de visita",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Éxito",
+          description: `Visita programada para ${new Date(visitDateDialog.selectedDate).toLocaleString("es-ES")}`,
+        })
+
+        // Close dialog and refresh leads list
+        setVisitDateDialog({ open: false, leadId: "", leadName: "", selectedDate: "" })
+
+        // Refresh completos leads if expanded
+        if (expandedLeadsAnuncio) {
+          const anuncio = anunciosCards.find((a) => a.id === expandedLeadsAnuncio)
+          if (anuncio) {
+            await handleToggleCompletosExpanded(anuncio)
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[v0] Error in handleSaveVisitDate:", err)
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la fecha de visita",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -2115,11 +2189,23 @@ export default function AnunciosPage() {
                             <div className="space-y-2">
                               {completosLeads.map((lead) => (
                                 <div
-                                  key={lead.idc}
-                                  className="flex items-center justify-between p-3 bg-background rounded-lg border hover:border-primary/50 transition-colors"
+                                  key={lead.IDC}
+                                  className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                                    lead.fecha_de_visita
+                                      ? 'bg-blue-50 border-blue-200 hover:border-blue-300'
+                                      : 'bg-background hover:border-primary/50'
+                                  }`}
                                 >
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm truncate">{lead.Nombre}</p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium text-sm truncate">{lead.Nombre}</p>
+                                      {lead.fecha_de_visita && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                                          <Calendar className="h-3 w-3 mr-1" />
+                                          Visita programada
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="flex items-center gap-3 mt-1">
                                       <p className="text-xs text-muted-foreground">{lead.Correo}</p>
                                       {lead.Telefono && (
@@ -2129,10 +2215,26 @@ export default function AnunciosPage() {
                                     {lead.Ingresos && (
                                       <p className="text-xs text-muted-foreground mt-1">Ingresos: {lead.Ingresos}€</p>
                                     )}
+                                    {lead.fecha_de_visita && (
+                                      <p className="text-xs font-medium text-blue-700 mt-1">
+                                        📅 {new Date(lead.fecha_de_visita).toLocaleString("es-ES", {
+                                          day: "2-digit",
+                                          month: "short",
+                                          year: "numeric",
+                                          hour: "2-digit",
+                                          minute: "2-digit"
+                                        })}
+                                      </p>
+                                    )}
                                   </div>
-                                  <Button size="sm" onClick={() => handleProgramarVisita(lead.idc)} className="ml-2">
+                                  <Button
+                                    size="sm"
+                                    variant={lead.fecha_de_visita ? "outline" : "default"}
+                                    onClick={() => handleProgramarVisita(lead.IDC, lead.Nombre)}
+                                    className="ml-2"
+                                  >
                                     <UserCheck className="h-3.5 w-3.5 mr-1" />
-                                    Programar visita
+                                    {lead.fecha_de_visita ? "Re-programar visita" : "Programar visita"}
                                   </Button>
                                 </div>
                               ))}
@@ -2550,7 +2652,7 @@ export default function AnunciosPage() {
               {/* FAQs Section */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>Preguntas Frecuentes (FAQs)</Label>
+                  <Label className="text-sm font-medium">Preguntas Frecuentes (FAQs)</Label>
                   <Button size="sm" variant="outline" onClick={addFaq}>
                     <Plus className="h-4 w-4 mr-1" />
                     Añadir FAQ
@@ -2917,17 +3019,23 @@ export default function AnunciosPage() {
                 <p className="text-center text-muted-foreground py-8">No hay leads con este estado</p>
               ) : (
                 phaseLeadsDialog.leads.map((lead) => (
-                  <Card key={lead.idc}>
+                  <Card key={lead.IDC}>
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="font-medium">{lead.Nombre || "Sin nombre"}</div>
-                          <div className="text-sm text-muted-foreground">{lead.Correo || "Sin correo"}</div>
-                          <div className="text-sm text-muted-foreground">{lead.Telefono || "Sin teléfono"}</div>
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{lead.Nombre || "Sin nombre"}</p>
+                            <p className="text-xs text-muted-foreground truncate">{lead.Correo}</p>
+                            {lead.Telefono && <p className="text-xs text-muted-foreground">{lead.Telefono}</p>}
+                          </div>
+                          <Badge variant="secondary" className="ml-2 shrink-0">
+                            {phaseLeadsDialog.status}
+                          </Badge>
                         </div>
-                        <Badge variant="secondary">{lead.Estado}</Badge>
+                        {lead.Ingresos && (
+                          <p className="text-xs text-muted-foreground">Ingresos: {lead.Ingresos}€</p>
+                        )}
                       </div>
-                      {lead.Portal && <div className="mt-2 text-xs text-muted-foreground">Portal: {lead.Portal}</div>}
                     </CardContent>
                   </Card>
                 ))
@@ -3105,6 +3213,40 @@ export default function AnunciosPage() {
                 Eliminar Permanentemente
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={visitDateDialog.open} onOpenChange={(open) => setVisitDateDialog({ ...visitDateDialog, open })}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Programar Visita</DialogTitle>
+              <DialogDescription>
+                Selecciona la fecha y hora de visita para {visitDateDialog.leadName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label htmlFor="visit-date" className="text-sm font-medium">
+                  Fecha y hora de visita
+                </label>
+                <input
+                  id="visit-date"
+                  type="datetime-local"
+                  value={visitDateDialog.selectedDate}
+                  onChange={(e) => setVisitDateDialog({ ...visitDateDialog, selectedDate: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setVisitDateDialog({ open: false, leadId: "", leadName: "", selectedDate: "" })}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveVisitDate}>
+                <Calendar className="h-4 w-4 mr-2" />
+                Guardar Fecha
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

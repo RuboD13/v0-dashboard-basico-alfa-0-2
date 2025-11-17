@@ -33,7 +33,16 @@ export async function middleware(request: NextRequest) {
   try {
     const {
       data: { user },
+      error
     } = await supabase.auth.getUser()
+
+    if (error && error.message.includes("Refresh Token")) {
+      // Clear all auth cookies
+      const response = NextResponse.redirect(new URL("/login", request.url))
+      response.cookies.delete('sb-access-token')
+      response.cookies.delete('sb-refresh-token')
+      return response
+    }
 
     if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
       return NextResponse.redirect(new URL("/login", request.url))
@@ -44,7 +53,12 @@ export async function middleware(request: NextRequest) {
     }
   } catch (error) {
     console.error("[v0] Middleware auth check failed:", error)
-    // Continue without auth check if there's an error
+    if (request.nextUrl.pathname.startsWith("/dashboard")) {
+      const response = NextResponse.redirect(new URL("/login", request.url))
+      response.cookies.delete('sb-access-token')
+      response.cookies.delete('sb-refresh-token')
+      return response
+    }
   }
 
   return supabaseResponse
