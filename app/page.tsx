@@ -1,25 +1,24 @@
-import { Navbar } from "@/components/rentaflow/navbar"
-import { Hero } from "@/components/rentaflow/hero"
-import { Partners } from "@/components/rentaflow/partners"
-import { Benefits } from "@/components/rentaflow/benefits"
-import { HowItWorks } from "@/components/rentaflow/how-it-works"
-import { ApiPreview } from "@/components/rentaflow/api-preview"
-import { Pricing } from "@/components/rentaflow/pricing"
-import { Testimonials } from "@/components/rentaflow/testimonials"
-import { FAQ } from "@/components/rentaflow/faq"
-import { CTASection } from "@/components/rentaflow/cta-section"
-import { Footer } from "@/components/rentaflow/footer"
-import "@/styles/rentaflow.css"
+import { Navbar } from "@/components/landing/navbar"
+import { Hero } from "@/components/landing/hero"
+import { Partners } from "@/components/landing/partners"
+import { Benefits } from "@/components/landing/benefits"
+import { HowItWorks } from "@/components/landing/how-it-works"
+import { Pricing } from "@/components/landing/pricing"
+import { Testimonials } from "@/components/landing/testimonials"
+import { FAQ } from "@/components/landing/faq"
+import { CTASection } from "@/components/landing/cta-section"
+import { Footer } from "@/components/landing/footer"
+import { DashboardPreview } from "@/components/landing/dashboard-preview"
 
-export default function RentAFlowLanding() {
+export default function Home() {
   return (
-    <main>
+    <main className="min-h-screen bg-background">
       <Navbar />
       <Hero />
       <Partners />
       <Benefits />
       <HowItWorks />
-      <ApiPreview />
+      <DashboardPreview />
       <Pricing />
       <Testimonials />
       <FAQ />
