@@ -1,32 +1,30 @@
-import "@/app/styles/landing.css"
-import Navbar from "@/app/landing/navbar"
-import Hero from "@/app/landing/hero"
-import Partners from "@/app/landing/partners"
-import Benefits from "@/app/landing/benefits"
-import HowItWorks from "@/app/landing/how-it-works"
-import ProductPreview from "@/app/landing/product-preview"
-import Pricing from "@/app/landing/pricing"
-import Testimonials from "@/app/landing/testimonials"
-import FAQ from "@/app/landing/faq"
-import CTASection from "@/app/landing/cta-section"
-import Footer from "@/app/landing/footer"
+import { Navbar } from "@/components/rentaflow/navbar"
+import { Hero } from "@/components/rentaflow/hero"
+import { Partners } from "@/components/rentaflow/partners"
+import { Benefits } from "@/components/rentaflow/benefits"
+import { HowItWorks } from "@/components/rentaflow/how-it-works"
+import { ApiPreview } from "@/components/rentaflow/api-preview"
+import { Pricing } from "@/components/rentaflow/pricing"
+import { Testimonials } from "@/components/rentaflow/testimonials"
+import { FAQ } from "@/components/rentaflow/faq"
+import { CTASection } from "@/components/rentaflow/cta-section"
+import { Footer } from "@/components/rentaflow/footer"
+import "@/styles/rentaflow.css"
 
-export default function LandingPage() {
+export default function RentAFlowLanding() {
   return (
-    <div className="landing-page">
+    <main>
       <Navbar />
-      <main>
-        <Hero />
-        <Partners />
-        <Benefits />
-        <HowItWorks />
-        <ProductPreview />
-        <Pricing />
-        <Testimonials />
-        <FAQ />
-        <CTASection />
-      </main>
+      <Hero />
+      <Partners />
+      <Benefits />
+      <HowItWorks />
+      <ApiPreview />
+      <Pricing />
+      <Testimonials />
+      <FAQ />
+      <CTASection />
       <Footer />
-    </div>
+    </main>
   )
 }
