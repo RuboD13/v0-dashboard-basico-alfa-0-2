@@ -1,17 +1,33 @@
 import type React from "react"
-import type { Metadata } from "next"
-import { Inter, Outfit } from "next/font/google"
+import type { Metadata, Viewport } from "next"
+import { Inter, Plus_Jakarta_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
-const outfit = Outfit({ subsets: ["latin"] })
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+})
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+})
 
 export const metadata: Metadata = {
-  title: "RentAFlow | Automatiza tu Gestión de Alquileres con IA",
+  title: "RentAFlow | Automatiza la gestión de alquileres",
   description:
-    "RentAFlow es tu asistente IA white-label que automatiza el 80% de la gestión de alquileres. Respuesta instantánea 24/7, filtrado inteligente y agendado automático de visitas.",
-  keywords: ["alquileres", "inmobiliaria", "automatización", "IA", "gestión leads", "agencia inmobiliaria"],
+    "La plataforma de automatización líder para agencias inmobiliarias. Desde la captación de leads hasta la firma del contrato. Ahorra tiempo, cierra más contratos.",
+  keywords: [
+    "alquiler",
+    "inmobiliaria",
+    "automatización",
+    "leads",
+    "gestión de propiedades",
+    "agencia inmobiliaria",
+    "SaaS",
+    "B2B",
+  ],
   generator: "v0.app",
   icons: {
     icon: [
@@ -30,6 +46,18 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-icon.png",
   },
+  openGraph: {
+    title: "RentAFlow | Automatiza la gestión de alquileres",
+    description: "La plataforma de automatización líder para agencias inmobiliarias.",
+    type: "website",
+    locale: "es_ES",
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#4A6741",
+  width: "device-width",
+  initialScale: 1,
 }
 
 export default function RootLayout({
@@ -38,8 +66,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className="scroll-smooth">
-      <body className={`font-sans antialiased`}>
+    <html lang="es">
+      <body className={`${inter.variable} ${plusJakartaSans.variable} font-sans antialiased`}>
         {children}
         <Analytics />
       </body>

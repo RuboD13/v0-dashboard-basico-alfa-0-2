@@ -1,29 +1,34 @@
-import { Navbar } from "@/components/landing/navbar"
-import { Hero } from "@/components/landing/hero"
-import { Partners } from "@/components/landing/partners"
-import { Benefits } from "@/components/landing/benefits"
-import { HowItWorks } from "@/components/landing/how-it-works"
-import { Pricing } from "@/components/landing/pricing"
-import { Testimonials } from "@/components/landing/testimonials"
-import { FAQ } from "@/components/landing/faq"
-import { CTASection } from "@/components/landing/cta-section"
-import { Footer } from "@/components/landing/footer"
-import { DashboardPreview } from "@/components/landing/dashboard-preview"
+import { Navbar } from "./landing/navbar"
+import { Hero } from "./landing/hero"
+import { Partners } from "./landing/partners"
+import { Benefits } from "./landing/benefits"
+import { HowItWorks } from "./landing/how-it-works"
+import { ProductPreview } from "./landing/product-preview"
+import { ApiShowcase } from "./landing/api-showcase"
+import { Pricing } from "./landing/pricing"
+import { Testimonials } from "./landing/testimonials"
+import { FAQ } from "./landing/faq"
+import { CTASection } from "./landing/cta-section"
+import { Footer } from "./landing/footer"
+import "./landing/landing.css"
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-background">
+    <>
       <Navbar />
-      <Hero />
-      <Partners />
-      <Benefits />
-      <HowItWorks />
-      <DashboardPreview />
-      <Pricing />
-      <Testimonials />
-      <FAQ />
-      <CTASection />
+      <main>
+        <Hero />
+        <Partners />
+        <Benefits />
+        <HowItWorks />
+        <ProductPreview />
+        <ApiShowcase />
+        <Pricing />
+        <Testimonials />
+        <FAQ />
+        <CTASection />
+      </main>
       <Footer />
-    </main>
+    </>
   )
 }
