@@ -1,23 +1,23 @@
-import "./landing.css"
+export default function Partners() {
+  const partners = [
+    { name: "Idealista", color: "#7ED321" },
+    { name: "Fotocasa", color: "#FF5A5F" },
+    { name: "Habitaclia", color: "#0066CC" },
+    { name: "Pisos.com", color: "#E91E63" },
+    { name: "Yaencontre", color: "#FF9800" },
+    { name: "Milanuncios", color: "#00BCD4" },
+  ]
 
-const partners = [
-  { name: "Idealista", logo: "/idealista-logo-text.jpg" },
-  { name: "Fotocasa", logo: "/fotocasa-logo-text.jpg" },
-  { name: "Habitaclia", logo: "/habitaclia-logo-text.jpg" },
-  { name: "Pisos.com", logo: "/pisos-com-logo.jpg" },
-  { name: "Yaencontre", logo: "/yaencontre-logo.jpg" },
-  { name: "Milanuncios", logo: "/milanuncios-logo.jpg" },
-]
-
-export function Partners() {
   return (
     <section className="partners">
       <div className="container">
-        <p className="partners-label">Integrado con los principales portales inmobiliarios de España</p>
+        <p className="partners-label">Integrado con los principales portales inmobiliarios</p>
         <div className="partners-grid">
           {partners.map((partner) => (
             <div key={partner.name} className="partner-logo">
-              <span className="partner-logo-text">{partner.name}</span>
+              <span className="partner-logo-text" style={{ color: partner.color }}>
+                {partner.name}
+              </span>
             </div>
           ))}
         </div>

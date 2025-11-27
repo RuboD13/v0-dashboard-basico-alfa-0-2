@@ -1,33 +1,26 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Inter, Plus_Jakarta_Sans } from "next/font/google"
+import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter",
-})
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-plus-jakarta",
+  display: "swap",
 })
 
 export const metadata: Metadata = {
-  title: "RentAFlow | Automatiza la gestión de alquileres",
+  title: "RentAFlow - Automatiza tu Gestión de Alquileres",
   description:
-    "La plataforma de automatización líder para agencias inmobiliarias. Desde la captación de leads hasta la firma del contrato. Ahorra tiempo, cierra más contratos.",
+    "Convierte leads de portales inmobiliarios en contratos firmados. Respuestas automáticas, validación inteligente, programación de visitas y gestión documental en una sola plataforma.",
   keywords: [
-    "alquiler",
-    "inmobiliaria",
-    "automatización",
-    "leads",
-    "gestión de propiedades",
-    "agencia inmobiliaria",
-    "SaaS",
-    "B2B",
+    "automatización inmobiliaria",
+    "gestión alquileres",
+    "leads inmobiliarios",
+    "CRM inmobiliario",
+    "proptech",
   ],
+  authors: [{ name: "RentAFlow" }],
   generator: "v0.app",
   icons: {
     icon: [
@@ -47,17 +40,18 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   openGraph: {
-    title: "RentAFlow | Automatiza la gestión de alquileres",
-    description: "La plataforma de automatización líder para agencias inmobiliarias.",
+    title: "RentAFlow - Automatiza tu Gestión de Alquileres",
+    description:
+      "La plataforma de automatización para agencias inmobiliarias. Convierte leads en contratos de manera eficiente.",
     type: "website",
     locale: "es_ES",
   },
 }
 
 export const viewport: Viewport = {
-  themeColor: "#4A6741",
   width: "device-width",
   initialScale: 1,
+  themeColor: "#2D5A27",
 }
 
 export default function RootLayout({
@@ -67,7 +61,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.variable} ${plusJakartaSans.variable} font-sans antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         {children}
         <Analytics />
       </body>

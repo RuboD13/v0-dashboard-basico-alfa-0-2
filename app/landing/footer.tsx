@@ -1,8 +1,6 @@
 "use client"
 
-import "./landing.css"
-
-export function Footer() {
+export default function Footer() {
   return (
     <footer className="footer">
       <div className="container">
@@ -10,108 +8,40 @@ export function Footer() {
           <div className="footer-brand">
             <div className="footer-logo">
               <div className="footer-logo-icon">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
               </div>
               RentAFlow
             </div>
             <p className="footer-description">
-              La plataforma de automatización líder para agencias inmobiliarias. Desde la captación hasta la firma del
-              contrato.
+              La plataforma de automatización para agencias inmobiliarias. Convierte leads en contratos de manera
+              eficiente.
             </p>
-            <div className="footer-socials">
-              <a href="#" className="footer-social" aria-label="LinkedIn">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-                  <rect x="2" y="9" width="4" height="12" />
-                  <circle cx="4" cy="4" r="2" />
-                </svg>
-              </a>
-              <a href="#" className="footer-social" aria-label="Twitter">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
-                </svg>
-              </a>
-              <a href="#" className="footer-social" aria-label="Instagram">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-                </svg>
-              </a>
-              <a href="#" className="footer-social" aria-label="YouTube">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-                  <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
-                </svg>
-              </a>
-            </div>
           </div>
 
           <div className="footer-column">
             <h4 className="footer-column-title">Producto</h4>
             <ul className="footer-links">
               <li>
-                <a href="#servicios">Características</a>
+                <a href="#benefits" className="footer-link">
+                  Características
+                </a>
               </li>
               <li>
-                <a href="#precios">Precios</a>
+                <a href="#pricing" className="footer-link">
+                  Precios
+                </a>
               </li>
               <li>
-                <a href="#api">API</a>
+                <a href="#" className="footer-link">
+                  Integraciones
+                </a>
               </li>
               <li>
-                <a href="#">Integraciones</a>
-              </li>
-              <li>
-                <a href="#">Actualizaciones</a>
+                <a href="#" className="footer-link">
+                  API
+                </a>
               </li>
             </ul>
           </div>
@@ -120,19 +50,24 @@ export function Footer() {
             <h4 className="footer-column-title">Empresa</h4>
             <ul className="footer-links">
               <li>
-                <a href="#">Sobre nosotros</a>
+                <a href="#" className="footer-link">
+                  Sobre Nosotros
+                </a>
               </li>
               <li>
-                <a href="#">Blog</a>
+                <a href="#" className="footer-link">
+                  Blog
+                </a>
               </li>
               <li>
-                <a href="#">Empleo</a>
+                <a href="#" className="footer-link">
+                  Carreras
+                </a>
               </li>
               <li>
-                <a href="#">Partners</a>
-              </li>
-              <li>
-                <a href="#">Contacto</a>
+                <a href="#" className="footer-link">
+                  Contacto
+                </a>
               </li>
             </ul>
           </div>
@@ -141,30 +76,39 @@ export function Footer() {
             <h4 className="footer-column-title">Legal</h4>
             <ul className="footer-links">
               <li>
-                <a href="#">Privacidad</a>
+                <a href="#" className="footer-link">
+                  Privacidad
+                </a>
               </li>
               <li>
-                <a href="#">Términos</a>
+                <a href="#" className="footer-link">
+                  Términos
+                </a>
               </li>
               <li>
-                <a href="#">Cookies</a>
+                <a href="#" className="footer-link">
+                  Cookies
+                </a>
               </li>
               <li>
-                <a href="#">GDPR</a>
-              </li>
-              <li>
-                <a href="#">Seguridad</a>
+                <a href="#" className="footer-link">
+                  GDPR
+                </a>
               </li>
             </ul>
           </div>
 
-          <div className="footer-column footer-newsletter">
+          <div className="footer-newsletter">
             <h4 className="footer-column-title">Newsletter</h4>
-            <p className="footer-newsletter-text">Recibe tips de automatización y novedades del sector inmobiliario.</p>
-            <form className="footer-newsletter-form" onSubmit={(e) => e.preventDefault()}>
-              <input type="email" placeholder="tu@email.com" className="footer-newsletter-input" />
-              <button type="submit" className="footer-newsletter-btn">
-                Suscribir
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+              Recibe consejos y novedades del sector inmobiliario
+            </p>
+            <form className="newsletter-form" onSubmit={(e) => e.preventDefault()}>
+              <input type="email" placeholder="tu@email.com" className="newsletter-input" />
+              <button type="submit" className="btn btn-primary btn-sm">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
               </button>
             </form>
           </div>
@@ -172,10 +116,22 @@ export function Footer() {
 
         <div className="footer-bottom">
           <p className="footer-copyright">© 2025 RentAFlow. Todos los derechos reservados.</p>
-          <div className="footer-legal">
-            <a href="#">Política de privacidad</a>
-            <a href="#">Términos de servicio</a>
-            <a href="#">Configuración de cookies</a>
+          <div className="footer-social">
+            <a href="#" className="footer-social-link" aria-label="Twitter">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </a>
+            <a href="#" className="footer-social-link" aria-label="LinkedIn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+              </svg>
+            </a>
+            <a href="#" className="footer-social-link" aria-label="YouTube">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+              </svg>
+            </a>
           </div>
         </div>
       </div>

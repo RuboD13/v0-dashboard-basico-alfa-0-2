@@ -1,98 +1,65 @@
-"use client"
-
-import { useState } from "react"
-import "./landing.css"
-
-const plans = [
-  {
-    name: "Mini",
-    monthlyPrice: 49,
-    yearlyPrice: 39,
-    description: "Para agentes independientes",
-    features: [
-      { text: "1 usuario", included: true },
-      { text: "200 ejecuciones/mes", included: true },
-      { text: "0 anuncios activos", included: true },
-      { text: "Soporte básico por email", included: true },
-      { text: "Integraciones básicas", included: true },
-      { text: "Validación IA", included: false },
-      { text: "API access", included: false },
-    ],
-    popular: false,
-  },
-  {
-    name: "Starter",
-    monthlyPrice: 99,
-    yearlyPrice: 79,
-    description: "Para pequeñas agencias",
-    features: [
-      { text: "2 usuarios", included: true },
-      { text: "400 ejecuciones/mes", included: true },
-      { text: "3 anuncios activos", included: true },
-      { text: "Soporte por email", included: true },
-      { text: "Todas las integraciones", included: true },
-      { text: "Validación IA básica", included: true },
-      { text: "API access", included: false },
-    ],
-    popular: false,
-  },
-  {
-    name: "Agency",
-    monthlyPrice: 249,
-    yearlyPrice: 199,
-    description: "Para agencias en crecimiento",
-    features: [
-      { text: "3 usuarios", included: true },
-      { text: "500 ejecuciones/mes", included: true },
-      { text: "10 anuncios activos", included: true },
-      { text: "Soporte prioritario", included: true },
-      { text: "Todas las integraciones", included: true },
-      { text: "Validación IA avanzada", included: true },
-      { text: "API access completo", included: true },
-    ],
-    popular: true,
-  },
-  {
-    name: "Profesional",
-    monthlyPrice: 499,
-    yearlyPrice: 399,
-    description: "Para grandes operaciones",
-    features: [
-      { text: "10 usuarios", included: true },
-      { text: "Ejecuciones ilimitadas", included: true },
-      { text: "Anuncios ilimitados", included: true },
-      { text: "Soporte 24/7", included: true },
-      { text: "Todas las integraciones", included: true },
-      { text: "Validación IA premium", included: true },
-      { text: "API + Webhooks + SDK", included: true },
-    ],
-    popular: false,
-  },
-]
-
-export function Pricing() {
-  const [isYearly, setIsYearly] = useState(false)
+export default function Pricing() {
+  const plans = [
+    {
+      name: "Mini",
+      price: 49,
+      description: "Para empezar",
+      features: ["1 usuario", "200 ejecuciones/mes", "0 anuncios activos", "Soporte Básico", "Integraciones básicas"],
+      popular: false,
+    },
+    {
+      name: "Starter",
+      price: 99,
+      description: "Para pequeñas agencias",
+      features: [
+        "2 usuarios",
+        "400 ejecuciones/mes",
+        "3 anuncios activos",
+        "Soporte Email",
+        "Todas las integraciones",
+        "Validación IA básica",
+      ],
+      popular: true,
+    },
+    {
+      name: "Agency",
+      price: 249,
+      description: "Para agencias en crecimiento",
+      features: [
+        "3 usuarios",
+        "500 ejecuciones/mes",
+        "10 anuncios activos",
+        "Soporte Prioritario",
+        "Validación IA avanzada",
+        "API access",
+        "Webhooks",
+      ],
+      popular: false,
+    },
+    {
+      name: "Profesional",
+      price: 499,
+      description: "Para grandes operaciones",
+      features: [
+        "10 usuarios",
+        "Ejecuciones ilimitadas",
+        "Anuncios ilimitados",
+        "Soporte 24/7",
+        "Validación IA premium",
+        "API completa",
+        "Webhooks avanzados",
+        "Onboarding personalizado",
+      ],
+      popular: false,
+    },
+  ]
 
   return (
-    <section className="pricing section" id="precios">
+    <section id="pricing" className="pricing section">
       <div className="container">
         <div className="section-header">
-          <span className="section-badge">Precios</span>
-          <h2 className="section-title">Planes transparentes sin sorpresas</h2>
-          <p className="section-subtitle">
-            Elige el plan que mejor se adapte a tu negocio. Todos incluyen 14 días de prueba gratis.
-          </p>
-        </div>
-
-        <div className="pricing-toggle">
-          <span className={`pricing-toggle-label ${!isYearly ? "active" : ""}`}>Mensual</span>
-          <button
-            className={`pricing-toggle-switch ${isYearly ? "active" : ""}`}
-            onClick={() => setIsYearly(!isYearly)}
-            aria-label="Toggle yearly pricing"
-          />
-          <span className={`pricing-toggle-label ${isYearly ? "active" : ""}`}>Anual</span>
-          <span className="pricing-save-badge">-20%</span>
+          <h2 className="heading-lg">Planes que crecen contigo</h2>
+          <p>Sin compromisos. Cancela cuando quieras.</p>
         </div>
 
         <div className="pricing-grid">
@@ -104,7 +71,7 @@ export function Pricing() {
                 <h3 className="pricing-name">{plan.name}</h3>
                 <div className="pricing-price">
                   <span className="pricing-currency">€</span>
-                  <span className="pricing-amount">{isYearly ? plan.yearlyPrice : plan.monthlyPrice}</span>
+                  <span className="pricing-amount">{plan.price}</span>
                   <span className="pricing-period">/mes</span>
                 </div>
                 <p className="pricing-description">{plan.description}</p>
@@ -112,25 +79,19 @@ export function Pricing() {
 
               <ul className="pricing-features">
                 {plan.features.map((feature, index) => (
-                  <li key={index} className={`pricing-feature ${!feature.included ? "disabled" : ""}`}>
-                    <svg
-                      className={`pricing-feature-icon ${!feature.included ? "disabled" : ""}`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      {feature.included ? <polyline points="20 6 9 17 4 12" /> : <line x1="18" y1="6" x2="6" y2="18" />}
-                    </svg>
-                    {feature.text}
+                  <li key={index} className="pricing-feature">
+                    <span className="pricing-feature-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </span>
+                    {feature}
                   </li>
                 ))}
               </ul>
 
-              <button className={`btn pricing-cta ${plan.popular ? "btn-primary" : "btn-secondary"}`}>
-                {plan.popular ? "Comenzar ahora" : "Empezar prueba"}
+              <button className={`btn pricing-cta ${plan.popular ? "btn-primary" : "btn-outline"}`}>
+                {plan.name === "Profesional" ? "Contactar Ventas" : "Comenzar Ahora"}
               </button>
             </div>
           ))}

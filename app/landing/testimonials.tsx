@@ -1,93 +1,56 @@
-import "./landing.css"
+export default function Testimonials() {
+  const testimonials = [
+    {
+      content:
+        "RentAFlow ha revolucionado nuestra forma de trabajar. Antes tardábamos días en responder a todos los leads, ahora es instantáneo. Hemos aumentado un 40% nuestros cierres.",
+      author: "Patricia Ruiz",
+      role: "Directora, Inmobiliaria Ruiz & Asociados",
+      initials: "PR",
+    },
+    {
+      content:
+        "La validación automática de inquilinos nos ahorra horas de trabajo. Ya no programamos visitas con personas que no cumplen los requisitos. Es increíble.",
+      author: "Miguel Ángel Torres",
+      role: "CEO, Torres Real Estate",
+      initials: "MT",
+    },
+    {
+      content:
+        "La integración con todos los portales fue inmediata. En 15 minutos teníamos todo conectado y funcionando. El soporte es excepcional.",
+      author: "Laura Fernández",
+      role: "Gerente, Gestiones Fernández",
+      initials: "LF",
+    },
+  ]
 
-const testimonials = [
-  {
-    quote:
-      "RentAFlow ha transformado completamente nuestra gestión de leads. Antes perdíamos oportunidades por no responder a tiempo, ahora nuestro tiempo de respuesta es de menos de 5 minutos automáticamente.",
-    author: "Laura Martínez",
-    role: "Directora Comercial",
-    company: "Inmobiliaria Martínez & Asociados",
-    initials: "LM",
-    featured: true,
-  },
-  {
-    quote:
-      "La validación automática de inquilinos nos ahorra horas de trabajo. El scoring de solvencia es increíblemente preciso.",
-    author: "Carlos Fernández",
-    role: "CEO",
-    company: "Grupo Vivienda BCN",
-    initials: "CF",
-    featured: false,
-  },
-  {
-    quote:
-      "Desde que implementamos RentAFlow, nuestra tasa de conversión de leads a visitas ha aumentado un 65%. El ROI es impresionante.",
-    author: "Ana García",
-    role: "Property Manager",
-    company: "Urban Living Madrid",
-    initials: "AG",
-    featured: false,
-  },
-  {
-    quote:
-      "La sincronización con nuestro calendario y la programación automática de visitas nos ha liberado tiempo para enfocarnos en cerrar contratos.",
-    author: "Miguel Sánchez",
-    role: "Agente Senior",
-    company: "RE/MAX Barcelona",
-    initials: "MS",
-    featured: false,
-  },
-]
-
-const stats = [
-  { value: "1,200+", label: "Agencias activas" },
-  { value: "2.5M", label: "Leads procesados" },
-  { value: "98%", label: "Satisfacción" },
-  { value: "3.5h", label: "Ahorro diario promedio" },
-]
-
-export function Testimonials() {
   return (
-    <section className="testimonials section" id="testimonios">
+    <section className="testimonials section">
       <div className="container">
         <div className="section-header">
-          <span className="section-badge">Testimonios</span>
-          <h2 className="section-title">Lo que dicen nuestros clientes</h2>
-          <p className="section-subtitle">
-            Miles de agencias inmobiliarias ya confían en RentAFlow para automatizar sus procesos.
-          </p>
+          <h2 className="heading-lg">Lo que dicen nuestros clientes</h2>
+          <p>Más de 1,200 agencias confían en RentAFlow</p>
         </div>
 
         <div className="testimonials-grid">
           {testimonials.map((testimonial, index) => (
-            <div key={index} className={`testimonial-card ${testimonial.featured ? "featured" : ""}`}>
-              <div className="testimonial-stars">
+            <div key={index} className="testimonial-card">
+              <div className="testimonial-rating">
                 {[...Array(5)].map((_, i) => (
                   <svg key={i} className="testimonial-star" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                   </svg>
                 ))}
               </div>
 
-              <p className="testimonial-quote">"{testimonial.quote}"</p>
+              <p className="testimonial-content">"{testimonial.content}"</p>
 
               <div className="testimonial-author">
                 <div className="testimonial-avatar">{testimonial.initials}</div>
-                <div className="testimonial-info">
+                <div>
                   <div className="testimonial-name">{testimonial.author}</div>
                   <div className="testimonial-role">{testimonial.role}</div>
-                  <div className="testimonial-company">{testimonial.company}</div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="testimonials-stats">
-          {stats.map((stat, index) => (
-            <div key={index} className="testimonial-stat">
-              <div className="testimonial-stat-value">{stat.value}</div>
-              <div className="testimonial-stat-label">{stat.label}</div>
             </div>
           ))}
         </div>

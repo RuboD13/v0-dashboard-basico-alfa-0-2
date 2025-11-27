@@ -1,77 +1,64 @@
 "use client"
 
 import { useState } from "react"
-import "./landing.css"
 
-const faqs = [
-  {
-    question: "¿Cómo funciona la integración con los portales inmobiliarios?",
-    answer:
-      "RentAFlow se conecta directamente con Idealista, Fotocasa, Habitaclia, Pisos.com y otros portales mediante integraciones oficiales. Una vez configurado, capturamos automáticamente todos los leads que llegan a tus anuncios y los procesamos según tus reglas de automatización.",
-  },
-  {
-    question: "¿Qué incluye la validación de inquilinos con IA?",
-    answer:
-      "Nuestra IA analiza la información del inquilino, verifica documentos (DNI, nóminas, contratos), calcula un score de solvencia y detecta posibles inconsistencias. Todo esto de forma automática para que solo dediques tiempo a inquilinos cualificados.",
-  },
-  {
-    question: "¿Puedo cancelar mi suscripción en cualquier momento?",
-    answer:
-      "Sí, puedes cancelar tu suscripción cuando quieras. No hay permanencia ni penalizaciones. Si cancelas, mantendrás acceso hasta el final del período de facturación actual.",
-  },
-  {
-    question: "¿Mis datos están seguros?",
-    answer:
-      "Absolutamente. Cumplimos con GDPR y aplicamos encriptación de extremo a extremo para todos los datos sensibles. Los documentos de inquilinos se almacenan de forma segura y solo son accesibles por usuarios autorizados de tu agencia.",
-  },
-  {
-    question: "¿Cómo funciona la sincronización con Google Calendar?",
-    answer:
-      "Al programar una visita en RentAFlow, se crea automáticamente un evento en el calendario del agente asignado y se envían recordatorios al inquilino. Si hay cambios, todo se actualiza automáticamente en ambos lados.",
-  },
-  {
-    question: "¿Ofrecen soporte en español?",
-    answer:
-      "Sí, todo nuestro equipo de soporte habla español nativo. Ofrecemos soporte por email en todos los planes y soporte prioritario 24/7 para planes Agency y Profesional.",
-  },
-  {
-    question: "¿Puedo probar RentAFlow antes de pagar?",
-    answer:
-      "Todos los planes incluyen 14 días de prueba gratuita con acceso completo a todas las funcionalidades. No se requiere tarjeta de crédito para empezar.",
-  },
-]
-
-export function FAQ() {
+export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
+  const faqs = [
+    {
+      question: "¿Cuánto tiempo tarda la integración con los portales?",
+      answer:
+        "La integración es inmediata. En menos de 15 minutos puedes tener conectados Idealista, Fotocasa, Habitaclia y otros portales principales. Solo necesitas tus credenciales de acceso.",
+    },
+    {
+      question: "¿Qué pasa si supero las ejecuciones de mi plan?",
+      answer:
+        "Recibirás una notificación cuando alcances el 80% de tu límite. Puedes actualizar tu plan en cualquier momento o comprar ejecuciones adicionales sin cambiar de plan.",
+    },
+    {
+      question: "¿Puedo cancelar en cualquier momento?",
+      answer:
+        "Sí, no hay permanencia. Puedes cancelar tu suscripción cuando quieras y seguirás teniendo acceso hasta el final del período facturado.",
+    },
+    {
+      question: "¿Es seguro subir documentos sensibles?",
+      answer:
+        "Absolutamente. Utilizamos encriptación de grado bancario (AES-256) y cumplimos con GDPR. Los documentos se almacenan en servidores europeos certificados ISO 27001.",
+    },
+    {
+      question: "¿Ofrecen período de prueba?",
+      answer:
+        "Sí, ofrecemos 14 días de prueba gratuita con acceso completo a todas las funcionalidades. No se requiere tarjeta de crédito.",
+    },
+    {
+      question: "¿Puedo personalizar los mensajes automáticos?",
+      answer:
+        "Por supuesto. Tienes control total sobre las plantillas de email, WhatsApp y SMS. Puedes usar variables dinámicas como nombre del inquilino, dirección de la propiedad, fecha de visita, etc.",
+    },
+  ]
+
   return (
-    <section className="faq section" id="faq">
+    <section id="faq" className="faq section">
       <div className="container">
         <div className="section-header">
-          <span className="section-badge">FAQ</span>
-          <h2 className="section-title">Preguntas frecuentes</h2>
-          <p className="section-subtitle">Resolvemos tus dudas más comunes sobre RentAFlow.</p>
+          <h2 className="heading-lg">Preguntas Frecuentes</h2>
+          <p>Todo lo que necesitas saber para empezar</p>
         </div>
 
-        <div className="faq-grid">
+        <div className="faq-list">
           {faqs.map((faq, index) => (
             <div key={index} className={`faq-item ${openIndex === index ? "open" : ""}`}>
               <button className="faq-question" onClick={() => setOpenIndex(openIndex === index ? null : index)}>
                 {faq.question}
-                <svg
-                  className="faq-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
+                <span className="faq-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </span>
               </button>
               <div className="faq-answer">
-                <p className="faq-answer-content">{faq.answer}</p>
+                <div className="faq-answer-content">{faq.answer}</div>
               </div>
             </div>
           ))}
