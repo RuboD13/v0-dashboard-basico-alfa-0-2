@@ -1,27 +1,19 @@
 import type React from "react"
-import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
+import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-})
+const _geist = Geist({ subsets: ["latin"] })
+const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
+// <CHANGE> Updated metadata for RentAFlow branding
 export const metadata: Metadata = {
   title: "RentAFlow - Automatiza tu Gestión de Alquileres",
   description:
-    "Convierte leads de portales inmobiliarios en contratos firmados. Respuestas automáticas, validación inteligente, programación de visitas y gestión documental en una sola plataforma.",
-  keywords: [
-    "automatización inmobiliaria",
-    "gestión alquileres",
-    "leads inmobiliarios",
-    "CRM inmobiliario",
-    "proptech",
-  ],
-  authors: [{ name: "RentAFlow" }],
+    "Plataforma B2B SaaS de automatización para agencias inmobiliarias. IA que captura leads, valida inquilinos, programa visitas y gestiona documentación.",
   generator: "v0.app",
+  keywords: "gestión alquileres, automatización inmobiliaria, CRM inmobiliario, leads inmobiliarios, SaaS inmobiliario",
   icons: {
     icon: [
       {
@@ -39,19 +31,6 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-icon.png",
   },
-  openGraph: {
-    title: "RentAFlow - Automatiza tu Gestión de Alquileres",
-    description:
-      "La plataforma de automatización para agencias inmobiliarias. Convierte leads en contratos de manera eficiente.",
-    type: "website",
-    locale: "es_ES",
-  },
-}
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#2D5A27",
 }
 
 export default function RootLayout({
@@ -61,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.className} antialiased`}>
+      <body className={`font-sans antialiased`}>
         {children}
         <Analytics />
       </body>
