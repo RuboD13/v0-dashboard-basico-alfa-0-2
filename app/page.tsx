@@ -1,31 +1,31 @@
-import { Navbar } from "@/components/landing/navbar"
-import { HeroSection } from "@/components/landing/hero-section"
-import { PartnersSection } from "@/components/landing/partners-section"
-import { BenefitsSection } from "@/components/landing/benefits-section"
-import { HowItWorks } from "@/components/landing/how-it-works"
-import { WorkflowDiagram } from "@/components/landing/workflow-diagram"
-import { PlatformPreview } from "@/components/landing/platform-preview"
-import { PricingSection } from "@/components/landing/pricing-section"
-import { TestimonialsSection } from "@/components/landing/testimonials-section"
-import { FAQSection } from "@/components/landing/faq-section"
-import { CTASection } from "@/components/landing/cta-section"
-import { Footer } from "@/components/landing/footer"
+import Navbar from "@/components/marketing/navbar"
+import HeroSection from "@/components/marketing/hero-section"
+import PartnersSection from "@/components/marketing/partners-section"
+import BenefitsGrid from "@/components/marketing/benefits-grid"
+import HowItWorks from "@/components/marketing/how-it-works"
+import DashboardPreview from "@/components/marketing/dashboard-preview"
+import PricingCards from "@/components/marketing/pricing-cards"
+import Testimonials from "@/components/marketing/testimonials"
+import FAQSection from "@/components/marketing/faq-section"
+import CTASection from "@/components/marketing/cta-section"
+import Footer from "@/components/marketing/footer"
 
-export default function LandingPage() {
+export default function Page() {
   return (
-    <main className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      <HeroSection />
-      <PartnersSection />
-      <BenefitsSection />
-      <HowItWorks />
-      <WorkflowDiagram />
-      <PlatformPreview />
-      <PricingSection />
-      <TestimonialsSection />
-      <FAQSection />
-      <CTASection />
+      <main>
+        <HeroSection />
+        <PartnersSection />
+        <BenefitsGrid />
+        <HowItWorks />
+        <DashboardPreview />
+        <PricingCards />
+        <Testimonials />
+        <FAQSection />
+        <CTASection />
+      </main>
       <Footer />
-    </main>
+    </div>
   )
 }

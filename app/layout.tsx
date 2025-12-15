@@ -1,22 +1,32 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
+const _geist = Geist({ subsets: ["latin"] })
+const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "RentAFlow - Automatiza la Gestión de Alquileres con IA",
+  title: "RentAFlow - Automatiza tu Gestión de Alquileres con IA",
   description:
-    "Plataforma de automatización para agencias inmobiliarias. Gestiona leads, visitas, documentación y contratos de alquiler en un solo lugar.",
-  keywords: ["gestión alquileres", "automatización inmobiliaria", "CRM propiedades", "IA alquileres"],
-  openGraph: {
-    title: "RentAFlow - Automatiza la Gestión de Alquileres con IA",
-    description: "Reduce 90% de tareas manuales en tu agencia inmobiliaria",
-    type: "website",
-  },
+    "Convierte leads de alquiler en contratos automáticamente. Respuesta 24/7, validación IA, gestión de visitas y documentación centralizada para agencias inmobiliarias.",
   generator: "v0.app",
+  keywords: [
+    "gestión alquileres",
+    "automatización inmobiliaria",
+    "IA para inmobiliarias",
+    "CRM alquileres",
+    "software inmobiliario",
+  ],
+  authors: [{ name: "RentAFlow" }],
+  openGraph: {
+    title: "RentAFlow - Automatiza tu Gestión de Alquileres",
+    description:
+      "Software de automatización inteligente para agencias inmobiliarias. Ahorra 3h/día y aumenta conversión 15%.",
+    type: "website",
+    locale: "es_ES",
+  },
   icons: {
     icon: [
       {
@@ -43,7 +53,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`font-sans antialiased`}>
         {children}
         <Analytics />
       </body>
