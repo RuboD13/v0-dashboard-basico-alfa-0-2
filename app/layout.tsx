@@ -1,19 +1,31 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter, JetBrains_Mono } from "next/font/google"
+import { Inter, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
-// <CHANGE> Updated fonts for a more sophisticated B2B SaaS look
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
-const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
+const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "RentAFlow - AI-Powered Rental Management Automation",
+  title: "RentAFlow | Automatiza la Gestión de Alquileres con IA",
   description:
-    "Transform manual rental tasks into automated workflows. White-label AI assistant for real estate agencies managing rental properties.",
+    "Transforma leads en contratos automáticamente. Respuestas instantáneas 24/7, validación inteligente, agendamiento de visitas y documentación centralizada para agencias inmobiliarias.",
   generator: "v0.app",
-  keywords: ["rental management", "AI automation", "real estate SaaS", "property management", "lead automation"],
+  keywords: ["alquiler", "inmobiliaria", "automatización", "IA", "leads", "gestión de alquileres", "SaaS"],
+  authors: [{ name: "RentAFlow" }],
+  openGraph: {
+    title: "RentAFlow | Automatiza la Gestión de Alquileres con IA",
+    description:
+      "Transforma leads en contratos automáticamente. La plataforma de automatización para agencias inmobiliarias modernas.",
+    type: "website",
+    locale: "es_ES",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RentAFlow | Automatiza la Gestión de Alquileres con IA",
+    description: "Transforma leads en contratos automáticamente.",
+  },
   icons: {
     icon: [
       {
@@ -39,8 +51,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className={`font-sans antialiased`}>
+    <html lang="es">
+      <body className={`${inter.className} font-sans antialiased`}>
         {children}
         <Analytics />
       </body>
