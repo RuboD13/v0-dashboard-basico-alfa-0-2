@@ -1,31 +1,22 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter, Geist_Mono } from "next/font/google"
+import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
-  title: "RentAFlow | Automatiza la Gestión de Alquileres con IA",
+  title: "RentAFlow - Automatiza la Gestión de Alquileres con IA",
   description:
-    "Transforma leads en contratos automáticamente. Respuestas instantáneas 24/7, validación inteligente, agendamiento de visitas y documentación centralizada para agencias inmobiliarias.",
-  generator: "v0.app",
-  keywords: ["alquiler", "inmobiliaria", "automatización", "IA", "leads", "gestión de alquileres", "SaaS"],
-  authors: [{ name: "RentAFlow" }],
+    "Plataforma de automatización para agencias inmobiliarias. Gestiona leads, visitas, documentación y contratos de alquiler en un solo lugar.",
+  keywords: ["gestión alquileres", "automatización inmobiliaria", "CRM propiedades", "IA alquileres"],
   openGraph: {
-    title: "RentAFlow | Automatiza la Gestión de Alquileres con IA",
-    description:
-      "Transforma leads en contratos automáticamente. La plataforma de automatización para agencias inmobiliarias modernas.",
+    title: "RentAFlow - Automatiza la Gestión de Alquileres con IA",
+    description: "Reduce 90% de tareas manuales en tu agencia inmobiliaria",
     type: "website",
-    locale: "es_ES",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "RentAFlow | Automatiza la Gestión de Alquileres con IA",
-    description: "Transforma leads en contratos automáticamente.",
-  },
+  generator: "v0.app",
   icons: {
     icon: [
       {
@@ -52,7 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.className} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         {children}
         <Analytics />
       </body>

@@ -1,82 +1,65 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export function Footer() {
   const footerLinks = {
-    Producto: [
-      { label: "Características", href: "#beneficios" },
-      { label: "Precios", href: "#precios" },
+    producto: [
+      { label: "Funcionalidades", href: "#" },
       { label: "Integraciones", href: "#" },
-      { label: "API", href: "#" },
+      { label: "Precios", href: "#precios" },
+      { label: "Casos de Uso", href: "#" },
     ],
-    Empresa: [
-      { label: "Sobre nosotros", href: "#" },
+    empresa: [
+      { label: "Sobre Nosotros", href: "#" },
       { label: "Blog", href: "#" },
       { label: "Carreras", href: "#" },
-      { label: "Contacto", href: "#contacto" },
+      { label: "Contacto", href: "#" },
     ],
-    Legal: [
+    recursos: [
+      { label: "Documentación", href: "#" },
+      { label: "Guías", href: "#" },
+      { label: "Centro de Ayuda", href: "#" },
+      { label: "API", href: "#" },
+    ],
+    legal: [
       { label: "Privacidad", href: "#" },
       { label: "Términos", href: "#" },
       { label: "Cookies", href: "#" },
-      { label: "RGPD", href: "#" },
-    ],
-    Soporte: [
-      { label: "Centro de ayuda", href: "#" },
-      { label: "Documentación", href: "#" },
-      { label: "Estado del sistema", href: "#" },
-      { label: "Comunidad", href: "#" },
+      { label: "GDPR", href: "#" },
     ],
   }
 
   return (
-    <footer className="bg-secondary text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid lg:grid-cols-6 gap-12 lg:gap-8">
-          {/* Brand + Newsletter */}
-          <div className="lg:col-span-2">
+    <footer className="border-t border-border bg-card/30">
+      <div className="container mx-auto px-4 lg:px-8 py-12 md:py-16">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mb-12">
+          <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="w-5 h-5 text-white"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-lg">R</span>
               </div>
-              <span className="text-xl font-semibold">RentAFlow</span>
+              <span className="text-xl font-bold">RentAFlow</span>
             </Link>
-            <p className="text-white/60 text-sm leading-relaxed mb-6">
-              La plataforma de automatización para agencias inmobiliarias modernas.
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+              Automatiza la gestión de alquileres con inteligencia artificial empresarial.
             </p>
-
-            {/* Newsletter */}
-            <div>
-              <p className="text-sm font-medium mb-3">Suscríbete a nuestra newsletter</p>
-              <div className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="tu@email.com"
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
-                />
-                <Button className="bg-primary hover:bg-primary-hover">Enviar</Button>
-              </div>
+            <div className="flex gap-2">
+              <Input type="email" placeholder="tu@email.com" className="max-w-[200px]" />
+              <Button>Suscribirse</Button>
             </div>
           </div>
 
-          {/* Links */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="font-semibold text-sm mb-4">{category}</h4>
+              <h4 className="font-semibold mb-4 capitalize">{category}</h4>
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <Link href={link.href} className="text-sm text-white/60 hover:text-white transition-colors">
+                    <Link
+                      href={link.href}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
                       {link.label}
                     </Link>
                   </li>
@@ -86,21 +69,18 @@ export function Footer() {
           ))}
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-white/50">© 2025 RentAFlow. Todos los derechos reservados.</p>
-          <div className="flex items-center gap-4">
-            {/* Social icons */}
-            {["Twitter", "LinkedIn", "Instagram"].map((social) => (
-              <Link
-                key={social}
-                href="#"
-                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-                aria-label={social}
-              >
-                <span className="text-xs font-bold">{social[0]}</span>
-              </Link>
-            ))}
+        <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">© 2025 RentAFlow. Todos los derechos reservados.</p>
+          <div className="flex gap-6">
+            <Link href="#" className="text-sm text-muted-foreground hover:text-foreground">
+              Twitter
+            </Link>
+            <Link href="#" className="text-sm text-muted-foreground hover:text-foreground">
+              LinkedIn
+            </Link>
+            <Link href="#" className="text-sm text-muted-foreground hover:text-foreground">
+              GitHub
+            </Link>
           </div>
         </div>
       </div>
