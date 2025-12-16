@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowRight, Mail, Calendar, FileText, Users, Zap, Bot } from "lucide-react"
+import { ArrowRight, Clock, Database } from "lucide-react"
+import Image from "next/image"
 
 export function HeroSection() {
   return (
@@ -19,36 +20,33 @@ export function HeroSection() {
           <div className="text-center lg:text-left">
             {/* Badge */}
             <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium">
-              <Zap className="w-3.5 h-3.5 mr-1.5 text-primary" />
-              +500 agencias ya automatizan con IA
+              <Clock className="w-3.5 h-3.5 mr-1.5 text-primary" />
+              Ahorra +40 horas al mes en gestiones
             </Badge>
 
-            {/* Heading */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground text-balance leading-tight">
-              Convierte Leads en <span className="text-primary">Contratos</span> Automáticamente
+              Centraliza y <span className="text-primary">Automatiza</span> tu Gestión de Alquileres
             </h1>
 
-            {/* Subheading */}
             <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 text-pretty leading-relaxed">
-              Automatiza respuestas, validación de inquilinos, programación de visitas y recopilación de documentos con
-              inteligencia artificial.
+              Solicita datos automáticamente a cada lead, programa visitas sin esfuerzo y recopila documentación. La
+              verificación final siempre es tuya.
             </p>
 
-            {/* Stats */}
             <div className="mt-8 flex flex-wrap justify-center lg:justify-start gap-6">
               <div className="text-center">
-                <p className="text-2xl sm:text-3xl font-bold text-foreground">90%</p>
-                <p className="text-sm text-muted-foreground">Menos emails manuales</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">34.5%</p>
+                <p className="text-sm text-muted-foreground">Tasa de conversión</p>
+              </div>
+              <div className="w-px bg-border hidden sm:block" />
+              <div className="text-center">
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">00:49h</p>
+                <p className="text-sm text-muted-foreground">Tiempo ahorrado/anuncio</p>
               </div>
               <div className="w-px bg-border hidden sm:block" />
               <div className="text-center">
                 <p className="text-2xl sm:text-3xl font-bold text-foreground">24/7</p>
                 <p className="text-sm text-muted-foreground">Respuesta automática</p>
-              </div>
-              <div className="w-px bg-border hidden sm:block" />
-              <div className="text-center">
-                <p className="text-2xl sm:text-3xl font-bold text-foreground">+35%</p>
-                <p className="text-sm text-muted-foreground">Tasa de conversión</p>
               </div>
             </div>
 
@@ -66,73 +64,31 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* Right Column - Visual */}
+          {/* Right Column - Real Dashboard Screenshots */}
           <div className="relative">
-            {/* Main Dashboard Preview */}
-            <div className="relative bg-card rounded-2xl shadow-2xl border border-border p-6 transform lg:rotate-1 hover:rotate-0 transition-transform duration-500">
-              {/* Dashboard Header */}
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-destructive/60" />
-                <div className="w-3 h-3 rounded-full bg-chart-4/60" />
-                <div className="w-3 h-3 rounded-full bg-success/60" />
-                <span className="ml-2 text-xs text-muted-foreground">RentAFlow Dashboard</span>
-              </div>
-
-              {/* Pipeline Preview */}
-              <div className="grid grid-cols-4 gap-2 mb-4">
-                {["Nuevo", "Validado", "Visita", "Firmado"].map((stage, i) => (
-                  <div key={stage} className="text-center p-2 rounded-lg bg-secondary/50">
-                    <p className="text-xs font-medium text-muted-foreground">{stage}</p>
-                    <p className="text-lg font-bold text-foreground">{[12, 8, 5, 3][i]}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Lead Card Example */}
-              <div className="bg-secondary/30 rounded-lg p-3 mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                      <Users className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">María García</p>
-                      <p className="text-xs text-muted-foreground">Piso 3B - Centro</p>
-                    </div>
-                  </div>
-                  <Badge variant="secondary" className="text-xs bg-success/10 text-success">
-                    Verificado
-                  </Badge>
-                </div>
-                <div className="flex gap-2 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> Visita: Mañana 10:00
-                  </span>
-                </div>
-              </div>
-
-              {/* AI Response Preview */}
-              <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Bot className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium text-primary">IA Respondiendo...</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  &quot;Hola María, gracias por tu interés. He verificado tu perfil y cumples los requisitos. ¿Te viene
-                  bien mañana a las 10:00 para la visita?&quot;
-                </p>
-              </div>
+            <div className="relative bg-card rounded-2xl shadow-2xl border border-border overflow-hidden">
+              <Image
+                src="/images/image.png"
+                alt="RentAFlow Dashboard - Análisis de Aval y gestión de candidatos"
+                width={800}
+                height={500}
+                className="w-full h-auto"
+                priority
+              />
             </div>
 
-            {/* Floating Integration Icons */}
-            <div className="absolute -left-4 top-1/4 bg-card rounded-xl p-3 shadow-lg border border-border animate-pulse">
-              <Mail className="w-6 h-6 text-muted-foreground" />
+            {/* Floating badges with key value props */}
+            <div className="absolute -left-4 top-1/4 bg-card rounded-xl p-3 shadow-lg border border-border">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-primary" />
+                <span className="text-xs font-medium text-foreground">Ahorro de tiempo</span>
+              </div>
             </div>
-            <div className="absolute -right-4 top-1/3 bg-card rounded-xl p-3 shadow-lg border border-border">
-              <Calendar className="w-6 h-6 text-primary" />
-            </div>
-            <div className="absolute -left-2 bottom-1/4 bg-card rounded-xl p-3 shadow-lg border border-border">
-              <FileText className="w-6 h-6 text-accent" />
+            <div className="absolute -right-4 bottom-1/4 bg-card rounded-xl p-3 shadow-lg border border-border">
+              <div className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-primary" />
+                <span className="text-xs font-medium text-foreground">Datos centralizados</span>
+              </div>
             </div>
           </div>
         </div>

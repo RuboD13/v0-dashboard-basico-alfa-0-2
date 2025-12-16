@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Users, Calendar, BarChart3, FileText, MessageSquare, Mail } from "lucide-react"
+import { Users, Calendar, BarChart3, FileText } from "lucide-react"
 import Image from "next/image"
 
 const tabs = [
@@ -10,43 +10,29 @@ const tabs = [
     id: "leads",
     label: "Gestión de Leads",
     icon: Users,
-    description: "Panel completo de leads con filtros por anuncio, estados y tasa de conversión en tiempo real.",
-    image: "/images/image.png",
+    description: "Lista completa de leads con estado, ingresos y origen. Filtra por anuncio y estado.",
+    screenshot: "/images/image.png",
   },
   {
     id: "anuncios",
     label: "Centro de Anuncios",
-    icon: BarChart3,
-    description: "Métricas por propiedad: leads nuevos, emails enviados, WhatsApps, tiempo ahorrado y más.",
-    image: "/images/image.png",
-  },
-  {
-    id: "validacion",
-    label: "Validación IA",
-    icon: FileText,
-    description: "Análisis automático de requisitos de aval, ingresos y tasa de esfuerzo para cada candidato.",
-    image: "/images/image.png",
-  },
-  {
-    id: "visitas",
-    label: "Programar Visitas",
     icon: Calendar,
-    description: "Reprograma visitas con un clic, selecciona agente y sincroniza con tu calendario.",
-    image: "/images/image.png",
+    description: "Control de todos tus inmuebles activos con métricas de rendimiento y consumo del plan.",
+    screenshot: "/images/image.png",
   },
   {
-    id: "whatsapp",
-    label: "WhatsApp Auto",
-    icon: MessageSquare,
-    description: "Mensajes automáticos personalizados por WhatsApp con seguimiento de entregas.",
-    image: "/images/image.png",
+    id: "metricas",
+    label: "Estadísticas",
+    icon: BarChart3,
+    description: "Análisis detallado: leads totales, tasa de conversión, tiempo ahorrado y calidad de datos.",
+    screenshot: "/images/image.png",
   },
   {
-    id: "email",
-    label: "Emails Automáticos",
-    icon: Mail,
-    description: "Emails de bienvenida, seguimiento y solicitud de documentación con diseño profesional.",
-    image: "/images/image.png",
+    id: "comunicaciones",
+    label: "Comunicaciones",
+    icon: FileText,
+    description: "Historial de WhatsApps y emails enviados automáticamente a cada candidato.",
+    screenshot: "/images/image.png",
   },
 ]
 
@@ -102,22 +88,20 @@ export function DashboardPreview() {
             </div>
           </div>
 
-          {/* Real Screenshot Image */}
-          <div className="relative w-full aspect-[16/10] overflow-hidden">
+          <div className="relative aspect-[16/10] lg:aspect-[16/9]">
             {activeTabData && (
               <Image
-                src={activeTabData.image || "/placeholder.svg"}
-                alt={activeTabData.label}
+                src={activeTabData.screenshot || "/placeholder.svg"}
+                alt={`RentAFlow - ${activeTabData.label}`}
                 fill
-                className="object-cover object-top transition-opacity duration-300"
-                sizes="(max-width: 1280px) 100vw, 1280px"
+                className="object-cover object-top"
               />
             )}
           </div>
         </div>
 
         {/* Tab Description */}
-        <p className="text-center text-muted-foreground mt-6 max-w-2xl mx-auto">{activeTabData?.description}</p>
+        <p className="text-center text-muted-foreground mt-6">{activeTabData?.description}</p>
       </div>
     </section>
   )

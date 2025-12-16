@@ -5,53 +5,65 @@ import Link from "next/link"
 
 const plans = [
   {
-    name: "Starter",
+    name: "Mini",
     description: "Para agentes independientes",
-    price: "99",
+    price: "49",
     period: "/mes",
     features: [
-      "Hasta 50 leads/mes",
       "1 usuario",
-      "Respuestas automáticas IA",
+      "200 leads/mes",
+      "3 anuncios",
+      "Respuestas automáticas",
       "Sincronización calendario",
-      "Soporte email",
-      "Integraciones básicas",
+      "WhatsApp: No incluida",
     ],
-    cta: "Comenzar Gratis",
+    cta: "Seleccionar",
     popular: false,
   },
   {
-    name: "Professional",
-    description: "Para agencias en crecimiento",
-    price: "199",
+    name: "Starter",
+    description: "Para pequeños equipos",
+    price: "99",
     period: "/mes",
     features: [
-      "Hasta 200 leads/mes",
-      "5 usuarios",
-      "Todo en Starter +",
-      "Validación IA avanzada",
-      "Gestión documentos",
-      "White-label emails",
-      "API access",
+      "2 usuarios",
+      "400 leads/mes",
+      "6 anuncios",
+      "Todo en Mini +",
+      "Configuración WhatsApp incluida",
       "Soporte prioritario",
     ],
-    cta: "Comenzar Prueba",
+    cta: "Comenzar Ahora",
     popular: true,
   },
   {
-    name: "Enterprise",
-    description: "Para grandes operaciones",
-    price: "399",
+    name: "Agency",
+    description: "Para agencias en crecimiento",
+    price: "249",
     period: "/mes",
     features: [
+      "6 usuarios",
+      "500 leads/mes",
+      "10 anuncios",
+      "Todo en Starter +",
+      "Configuración WhatsApp incluida",
+      "Métricas avanzadas",
+    ],
+    cta: "Seleccionar",
+    popular: false,
+  },
+  {
+    name: "Profesional",
+    description: "Para grandes operaciones",
+    price: "499",
+    period: "/mes",
+    features: [
+      "10 usuarios",
       "Leads ilimitados",
-      "Usuarios ilimitados",
-      "Todo en Professional +",
-      "SSO / SAML",
-      "SLA garantizado",
-      "Account manager dedicado",
-      "Onboarding personalizado",
-      "Integraciones custom",
+      "Anuncios ilimitados",
+      "Todo en Agency +",
+      "Configuración WhatsApp incluida",
+      "Soporte 24/7",
     ],
     cta: "Contactar Ventas",
     popular: false,
@@ -71,50 +83,49 @@ export function PricingCards() {
             Precios transparentes, <span className="text-primary">sin sorpresas</span>
           </h2>
           <p className="mt-4 text-lg text-muted-foreground text-pretty">
-            Elige el plan que mejor se adapte a tu volumen. Todos incluyen IA, automatizaciones y soporte.
+            Elige el plan que mejor se adapte a tu volumen. Todos incluyen automatizaciones y soporte.
           </p>
         </div>
 
-        {/* Pricing Grid */}
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative bg-card rounded-2xl border p-6 lg:p-8 flex flex-col ${
-                plan.popular ? "border-primary shadow-lg scale-105" : "border-border"
+              className={`relative bg-card rounded-2xl border p-6 flex flex-col ${
+                plan.popular ? "border-primary shadow-lg ring-2 ring-primary/20" : "border-border"
               }`}
             >
               {/* Popular Badge */}
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-primary text-primary-foreground">Más Popular</Badge>
+                  <Badge className="bg-primary text-primary-foreground">Recomendado</Badge>
                 </div>
               )}
 
               {/* Plan Header */}
-              <div className="mb-6">
-                <h3 className="text-xl font-semibold text-foreground">{plan.name}</h3>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
               </div>
 
               {/* Price */}
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-foreground">€{plan.price}</span>
+              <div className="mb-4">
+                <span className="text-3xl font-bold text-foreground">{plan.price}</span>
                 <span className="text-muted-foreground">{plan.period}</span>
               </div>
 
               {/* Features */}
-              <ul className="space-y-3 mb-8 flex-grow">
+              <ul className="space-y-2 mb-6 flex-grow">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />
                     <span className="text-sm text-muted-foreground">{feature}</span>
                   </li>
                 ))}
               </ul>
 
               {/* CTA */}
-              <Button variant={plan.popular ? "default" : "outline"} size="lg" className="w-full" asChild>
+              <Button variant={plan.popular ? "default" : "outline"} className="w-full" asChild>
                 <Link href="#contacto">{plan.cta}</Link>
               </Button>
             </div>

@@ -6,32 +6,32 @@ const faqs = [
   {
     question: "¿Cuánto tiempo toma la configuración inicial?",
     answer:
-      "La configuración básica toma menos de 30 minutos. Nuestro equipo te guía paso a paso para conectar tus portales, calendario y configurar las respuestas automáticas. Para planes Enterprise ofrecemos onboarding personalizado.",
+      "La configuración básica toma menos de 30 minutos. Conectamos tu cuenta de Idealista (u otro portal) y configuramos las respuestas automáticas. Para la integración con WhatsApp, nuestro equipo te asiste en el proceso.",
   },
   {
-    question: "¿Es compatible con mi CRM actual?",
+    question: "¿Funciona solo con Idealista?",
     answer:
-      "Sí, RentAFlow se integra con los principales CRMs del sector inmobiliario a través de nuestra API y Zapier. Ofrecemos integraciones nativas con Salesforce, HubSpot, Pipedrive y otros. Consulta la lista completa de integraciones.",
+      "No, RentAFlow está optimizado para Idealista pero funciona con Pisos.com, Fotocasa, Habitaclia y cualquier portal que envíe leads por email. También puedes conectar formularios de tu propia web.",
+  },
+  {
+    question: "¿Se integra con mi CRM?",
+    answer:
+      "Sí, puedes enviar los datos de tus leads a cualquier CRM que acepte leads mediante correo electrónico. La información se envía automáticamente cuando un lead cumple los criterios que configures.",
+  },
+  {
+    question: "¿La verificación de inquilinos es automática?",
+    answer:
+      "RentAFlow solicita automáticamente los datos y documentos a cada candidato (DNI, justificantes de ingresos, etc.). El sistema calcula análisis como la tasa de esfuerzo, pero la verificación y decisión final siempre es tuya.",
   },
   {
     question: "¿Qué pasa con la seguridad de los datos sensibles?",
     answer:
-      "La seguridad es nuestra prioridad. Todos los documentos se cifran en reposo y en tránsito (AES-256). Cumplimos con RGPD y LOPD. Los datos se almacenan en servidores dentro de la UE con certificaciones ISO 27001.",
+      "Cumplimos con RGPD y LOPD. Todos los documentos se cifran y los datos se almacenan en servidores dentro de la Unión Europea. Solo tú y tu equipo tienen acceso a la información de tus leads.",
   },
   {
     question: "¿Puedo cancelar mi suscripción en cualquier momento?",
     answer:
-      "Sí, puedes cancelar en cualquier momento sin penalización. Tu acceso continuará hasta el final del período de facturación. Ofrecemos un mes de prueba gratis sin compromiso y sin tarjeta de crédito.",
-  },
-  {
-    question: "¿Qué soporte técnico incluye mi plan?",
-    answer:
-      "Todos los planes incluyen soporte por email con tiempo de respuesta de 24h. Los planes Professional y Enterprise incluyen soporte prioritario con chat en vivo y tiempo de respuesta de 2h. Enterprise incluye además un account manager dedicado.",
-  },
-  {
-    question: "¿La IA puede responder en varios idiomas?",
-    answer:
-      "Sí, nuestra IA soporta español, catalán, inglés, francés y alemán. Detecta automáticamente el idioma del lead y responde en el mismo idioma, o puedes configurar un idioma por defecto para cada propiedad.",
+      "Sí, puedes cancelar en cualquier momento sin penalización. Tu acceso continuará hasta el final del período de facturación. Ofrecemos un mes de prueba gratis para early-adopters.",
   },
 ]
 

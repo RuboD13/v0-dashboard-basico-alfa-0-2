@@ -1,5 +1,4 @@
 import { MessageSquare, UserCheck, CalendarCheck, Bell, FileSignature } from "lucide-react"
-import Image from "next/image"
 
 const steps = [
   {
@@ -8,38 +7,50 @@ const steps = [
     title: "Lead Entra",
     description:
       "Captura automática desde portales (Idealista, Fotocasa), WhatsApp, email o tu web. Todo centralizado.",
-    image: "/images/image.png",
+    visual: {
+      type: "inbox",
+      items: ["Idealista: Nuevo interesado", "WhatsApp: Consulta piso", "Web: Formulario completado"],
+    },
   },
   {
     number: "02",
     icon: UserCheck,
     title: "Filtro IA",
-    description:
-      "Validación automática de requisitos: ingresos mínimos, documentación, perfil de riesgo y análisis de aval.",
-    image: "/images/image.png",
+    description: "Validación automática de requisitos: ingresos mínimos, documentación, perfil de riesgo.",
+    visual: {
+      type: "checklist",
+      items: ["Ingresos: 3x renta", "DNI verificado", "Sin incidencias"],
+    },
   },
   {
     number: "03",
     icon: CalendarCheck,
     title: "Agenda Visita",
-    description:
-      "El inquilino elige horario disponible. Reprograma con un clic y sincroniza con el calendario del agente.",
-    image: "/images/image.png",
+    description: "El inquilino elige horario disponible. Se sincroniza con tu calendario automáticamente.",
+    visual: {
+      type: "calendar",
+      items: ["Lun 10:00 - Disponible", "Mar 16:00 - Disponible", "Mié 11:00 - Ocupado"],
+    },
   },
   {
     number: "04",
     icon: Bell,
     title: "Recordatorios",
-    description: "Notificaciones automáticas por WhatsApp y email. Feedback post-visita para inquilino y agente.",
-    image: "/images/image.png",
+    description: "Notificaciones automáticas 24h y 2h antes. Feedback post-visita para inquilino y agente.",
+    visual: {
+      type: "notifications",
+      items: ["Recordatorio visita mañana", "¿Qué tal la visita?", "Valoración: 5 estrellas"],
+    },
   },
   {
     number: "05",
     icon: FileSignature,
     title: "Documentación",
-    description:
-      "Solicitud automática de documentos adicionales cuando se requiere información del inquilino o avalista.",
-    image: "/images/image.png",
+    description: "Recogida segura de documentos sensibles. Generación automática de contrato listo para firma.",
+    visual: {
+      type: "documents",
+      items: ["Nóminas 3 meses", "Contrato laboral", "Fianza recibida"],
+    },
   },
 ]
 
@@ -57,66 +68,43 @@ export function HowItWorks() {
           </p>
         </div>
 
-        {/* Steps with Real Screenshots */}
-        <div className="space-y-16 lg:space-y-24">
+        {/* Steps */}
+        <div className="space-y-8 lg:space-y-0 lg:grid lg:grid-cols-5 lg:gap-4">
           {steps.map((step, index) => {
             const Icon = step.icon
-            const isEven = index % 2 === 0
-
             return (
-              <div
-                key={step.number}
-                className={`grid lg:grid-cols-2 gap-8 lg:gap-12 items-center ${isEven ? "" : "lg:flex-row-reverse"}`}
-              >
-                {/* Content */}
-                <div className={`space-y-4 ${isEven ? "lg:order-1" : "lg:order-2"}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
-                      Paso {step.number}
+              <div key={step.number} className="relative">
+                {/* Connector Line (desktop) */}
+                {index < steps.length - 1 && (
+                  <div className="hidden lg:block absolute top-12 left-full w-full h-0.5 bg-border z-0">
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary" />
+                  </div>
+                )}
+
+                <div className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:shadow-md transition-all h-full">
+                  {/* Step Number & Icon */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">
+                      {step.number}
                     </span>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Icon className="w-7 h-7 text-primary" />
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="text-2xl lg:text-3xl font-bold text-foreground">{step.title}</h3>
                   </div>
 
-                  <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">{step.description}</p>
-                </div>
+                  {/* Content */}
+                  <h3 className="text-lg font-semibold text-foreground mb-2">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{step.description}</p>
 
-                {/* Screenshot */}
-                <div className={`relative ${isEven ? "lg:order-2" : "lg:order-1"}`}>
-                  <div className="relative bg-card rounded-2xl border border-border shadow-xl overflow-hidden">
-                    {/* Browser Chrome */}
-                    <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 border-b border-border">
-                      <div className="flex gap-1">
-                        <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-chart-4/60" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-success/60" />
+                  {/* Visual Preview */}
+                  <div className="bg-secondary/50 rounded-lg p-3 space-y-2">
+                    {step.visual.items.map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                        <span>{item}</span>
                       </div>
-                      <div className="flex-1 flex justify-center">
-                        <div className="px-3 py-0.5 bg-background rounded text-[10px] text-muted-foreground">
-                          app.rentaflow.com
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Screenshot */}
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <Image
-                        src={step.image || "/placeholder.svg"}
-                        alt={step.title}
-                        fill
-                        className="object-cover object-top"
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                      />
-                    </div>
+                    ))}
                   </div>
-
-                  {/* Decorative gradient */}
-                  <div className="absolute -inset-4 bg-gradient-to-br from-primary/5 to-accent/5 rounded-3xl -z-10" />
                 </div>
               </div>
             )

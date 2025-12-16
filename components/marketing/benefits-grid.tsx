@@ -1,44 +1,46 @@
-import { Bot, Shield, Calendar, FileCheck, BarChart3, Palette } from "lucide-react"
+import { Clock, Database, Calendar, FileCheck, BarChart3, MessageSquare } from "lucide-react"
 
 const benefits = [
   {
-    icon: Bot,
-    title: "Respuesta Instantánea 24/7",
+    icon: Clock,
+    title: "Ahorra Horas Cada Día",
     description:
-      "La IA responde a cada lead en segundos, cualquier día y hora. Nunca pierdas una oportunidad por no estar disponible.",
-    highlight: "Tiempo de respuesta < 30 seg",
+      "Automatiza respuestas a leads, recordatorios y seguimientos. Dedica tu tiempo a cerrar operaciones, no a emails.",
+    highlight: "00:49h ahorradas por anuncio",
   },
   {
-    icon: Shield,
-    title: "Validación IA de Inquilinos",
+    icon: Database,
+    title: "Todos los Datos Centralizados",
     description:
-      "Verificación automática de DNI, ingresos y perfil de riesgo. Filtra candidatos antes de invertir tu tiempo.",
-    highlight: "Reduce fraudes un 95%",
+      "Ingresos, documentos, comunicaciones y estado de cada lead en un solo lugar. Accede a todo con un click.",
+    highlight: "Un panel, toda la info",
+  },
+  {
+    icon: MessageSquare,
+    title: "Solicitud Automática de Datos",
+    description:
+      "El sistema solicita DNI, justificantes de ingresos y documentación a cada candidato. Tú solo validas.",
+    highlight: "Verificación humana final",
   },
   {
     icon: Calendar,
-    title: "Gestión Automática de Visitas",
+    title: "Gestión de Visitas Sin Esfuerzo",
     description:
-      "Sincronización bidireccional con Google Calendar y Outlook. Envío automático de recordatorios y confirmaciones.",
-    highlight: "Cero no-shows",
-  },
-  {
-    icon: FileCheck,
-    title: "Documentación Centralizada",
-    description: "Recogida segura de documentos sensibles: nóminas, contratos, avales. Todo en un mismo lugar cifrado.",
-    highlight: "Cumple normativa RGPD",
+      "Programa, reprograma y cancela visitas. Sincronización con tu calendario y notificaciones automáticas.",
+    highlight: "Cero llamadas perdidas",
   },
   {
     icon: BarChart3,
-    title: "Panel de Métricas en Tiempo Real",
-    description: "Dashboard con KPIs de conversión, tiempo de respuesta, ocupación y rentabilidad por propiedad.",
-    highlight: "Decisiones data-driven",
+    title: "Métricas en Tiempo Real",
+    description:
+      "Conversión, leads por día, tiempo ahorrado, análisis de calidad. Todo para tomar decisiones informadas.",
+    highlight: "34.5% tasa de conversión",
   },
   {
-    icon: Palette,
-    title: "White-Label con tu Marca",
-    description: "Personaliza emails, formularios y comunicaciones con tu logo y colores corporativos.",
-    highlight: "100% tu identidad",
+    icon: FileCheck,
+    title: "Análisis de Requisitos de Aval",
+    description: "Calcula automáticamente si el inquilino necesita aval según ingresos vs precio del alquiler.",
+    highlight: "Tasa de esfuerzo calculada",
   },
 ]
 
@@ -58,16 +60,13 @@ export function BenefitsGrid() {
 
         {/* Benefits Bento Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {benefits.map((benefit, index) => {
+          {benefits.map((benefit) => {
             const Icon = benefit.icon
-            const isLarge = index === 0 || index === 3
 
             return (
               <div
                 key={benefit.title}
-                className={`group relative bg-card rounded-2xl border border-border p-6 lg:p-8 hover:border-primary/30 hover:shadow-lg transition-all duration-300 ${
-                  isLarge ? "md:col-span-2 lg:col-span-1" : ""
-                }`}
+                className="group relative bg-card rounded-2xl border border-border p-6 lg:p-8 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
               >
                 {/* Icon */}
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
