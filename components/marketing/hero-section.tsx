@@ -1,8 +1,94 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowRight, Clock, Database } from "lucide-react"
-import Image from "next/image"
+import { ArrowRight, Clock, Database, CheckCircle2, Mail, MessageSquare } from "lucide-react"
+
+function HeroMockup() {
+  return (
+    <div className="bg-card rounded-xl border border-border shadow-lg overflow-hidden">
+      {/* Mock sidebar */}
+      <div className="flex">
+        <div className="w-48 bg-secondary/30 border-r border-border p-4 hidden lg:block">
+          <div className="font-semibold text-sm text-foreground mb-4">RentAFlow</div>
+          <div className="space-y-2">
+            {["Dashboard", "Anuncios", "Leads", "Configuración"].map((item, i) => (
+              <div
+                key={item}
+                className={`text-xs px-3 py-2 rounded-lg ${i === 2 ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Main content - Lead card mockup */}
+        <div className="flex-1 p-4 lg:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-foreground">María García</h3>
+              <p className="text-xs text-muted-foreground">Piso Centro, 3 | ID: 1892</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="text-xs h-7 bg-transparent">
+                <MessageSquare className="w-3 h-3 mr-1" />
+                WhatsApp
+              </Button>
+              <Button size="sm" variant="outline" className="text-xs h-7 bg-transparent">
+                <Mail className="w-3 h-3 mr-1" />
+                Correo
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Info personal */}
+            <div className="bg-secondary/30 rounded-lg p-3">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Información Personal</p>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Email</span>
+                  <span className="text-foreground">maria@email.com</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Ingresos</span>
+                  <span className="text-success font-medium">2.800,00 EUR</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Análisis */}
+            <div className="bg-success/10 rounded-lg p-3 border border-success/20">
+              <p className="text-xs font-medium text-success mb-2 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                NO REQUIERE AVAL
+              </p>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Ingresos mín.</span>
+                  <span className="text-foreground">2.250,00 EUR</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tasa esfuerzo</span>
+                  <span className="text-success font-medium">32.1%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Status badges */}
+          <div className="flex gap-2 mt-4">
+            <div className="bg-success/10 text-success text-xs px-3 py-1.5 rounded-lg font-medium">Datos Completos</div>
+            <div className="bg-secondary text-foreground text-xs px-3 py-1.5 rounded-lg">SCORE: 100%</div>
+            <div className="bg-secondary text-muted-foreground text-xs px-3 py-1.5 rounded-lg">
+              Visita: 20 dic 10:00
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function HeroSection() {
   return (
@@ -64,18 +150,9 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* Right Column - Real Dashboard Screenshots */}
+          {/* Right Column - React Mockup */}
           <div className="relative">
-            <div className="relative bg-card rounded-2xl shadow-2xl border border-border overflow-hidden">
-              <Image
-                src="/images/image.png"
-                alt="RentAFlow Dashboard - Análisis de Aval y gestión de candidatos"
-                width={800}
-                height={500}
-                className="w-full h-auto"
-                priority
-              />
-            </div>
+            <HeroMockup />
 
             {/* Floating badges with key value props */}
             <div className="absolute -left-4 top-1/4 bg-card rounded-xl p-3 shadow-lg border border-border">
