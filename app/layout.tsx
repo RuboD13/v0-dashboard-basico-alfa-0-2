@@ -1,49 +1,36 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Inter, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
 
 export const metadata: Metadata = {
-  title: "RentAFlow - Automatiza tu Gestión de Alquileres con IA",
+  title: "RentAFlow | Automatiza tu Gestión de Alquileres con IA",
   description:
-    "Convierte leads de alquiler en contratos automáticamente. Respuesta 24/7, validación IA, gestión de visitas y documentación centralizada para agencias inmobiliarias.",
-  generator: "v0.app",
+    "Convierte leads de alquiler en contratos automáticamente. Automatiza respuestas, validaciones, visitas y documentación con inteligencia artificial.",
   keywords: [
     "gestión alquileres",
     "automatización inmobiliaria",
-    "IA para inmobiliarias",
+    "IA inmobiliaria",
     "CRM alquileres",
-    "software inmobiliario",
+    "leads inmobiliarios",
   ],
   authors: [{ name: "RentAFlow" }],
   openGraph: {
-    title: "RentAFlow - Automatiza tu Gestión de Alquileres",
-    description:
-      "Software de automatización inteligente para agencias inmobiliarias. Ahorra 3h/día y aumenta conversión 15%.",
+    title: "RentAFlow | Automatiza tu Gestión de Alquileres con IA",
+    description: "Convierte leads de alquiler en contratos automáticamente.",
     type: "website",
-    locale: "es_ES",
   },
-  icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
-  },
+    generator: 'v0.app'
+}
+
+export const viewport = {
+  themeColor: "#7c3aed",
+  width: "device-width",
+  initialScale: 1,
 }
 
 export default function RootLayout({
@@ -52,8 +39,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es">
-      <body className={`font-sans antialiased`}>
+    <html lang="es" className="scroll-smooth">
+      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <Analytics />
       </body>

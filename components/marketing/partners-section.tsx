@@ -1,47 +1,58 @@
-export default function PartnersSection() {
+export function PartnersSection() {
+  const partners = [
+    { name: "Idealista", logo: "I" },
+    { name: "Fotocasa", logo: "F" },
+    { name: "Google", logo: "G" },
+    { name: "Outlook", logo: "O" },
+    { name: "WhatsApp", logo: "W" },
+    { name: "Stripe", logo: "S" },
+    { name: "DocuSign", logo: "D" },
+    { name: "Zapier", logo: "Z" },
+  ]
+
   return (
-    <section className="py-12 md:py-16 bg-muted/30">
+    <section className="py-12 lg:py-16 border-y border-border bg-secondary/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Integrado con las plataformas que ya usas
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            Integrado con las herramientas que ya usas
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 items-center justify-items-center opacity-60">
-          {/* Idealista */}
-          <div className="flex items-center justify-center">
-            <div className="px-6 py-3 bg-card rounded-lg border border-border">
-              <span className="text-lg font-bold text-foreground">Idealista</span>
+        <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-12">
+          {partners.map((partner) => (
+            <div
+              key={partner.name}
+              className="flex items-center justify-center w-24 h-12 rounded-lg bg-card border border-border hover:border-primary/30 transition-colors group"
+              title={partner.name}
+            >
+              <span className="text-xl font-bold text-muted-foreground group-hover:text-foreground transition-colors">
+                {partner.logo}
+              </span>
             </div>
-          </div>
+          ))}
+        </div>
 
-          {/* Fotocasa */}
-          <div className="flex items-center justify-center">
-            <div className="px-6 py-3 bg-card rounded-lg border border-border">
-              <span className="text-lg font-bold text-foreground">Fotocasa</span>
-            </div>
+        <div className="flex justify-center gap-4 mt-8">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-xs font-medium">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            RGPD Compliant
           </div>
-
-          {/* Google Calendar */}
-          <div className="flex items-center justify-center">
-            <div className="px-6 py-3 bg-card rounded-lg border border-border">
-              <span className="text-lg font-bold text-foreground">📅 Calendar</span>
-            </div>
-          </div>
-
-          {/* WhatsApp */}
-          <div className="flex items-center justify-center">
-            <div className="px-6 py-3 bg-card rounded-lg border border-border">
-              <span className="text-lg font-bold text-foreground">💬 WhatsApp</span>
-            </div>
-          </div>
-
-          {/* RGPD Badge */}
-          <div className="flex items-center justify-center col-span-2 md:col-span-1">
-            <div className="px-6 py-3 bg-success/10 rounded-lg border border-success/20">
-              <span className="text-sm font-bold text-success">🔒 RGPD</span>
-            </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Datos en UE
           </div>
         </div>
       </div>

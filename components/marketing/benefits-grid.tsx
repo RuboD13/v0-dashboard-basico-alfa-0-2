@@ -1,67 +1,90 @@
-import { Clock, Shield, Calendar, FileText, TrendingUp, Palette } from "lucide-react"
+import { Bot, Shield, Calendar, FileCheck, BarChart3, Palette } from "lucide-react"
 
 const benefits = [
   {
-    icon: Clock,
+    icon: Bot,
     title: "Respuesta Instantánea 24/7",
     description:
-      "IA responde automáticamente a cada consulta de inquilino en menos de 30 segundos, cualquier hora del día.",
+      "La IA responde a cada lead en segundos, cualquier día y hora. Nunca pierdas una oportunidad por no estar disponible.",
+    highlight: "Tiempo de respuesta < 30 seg",
   },
   {
     icon: Shield,
     title: "Validación IA de Inquilinos",
-    description: "Analiza DNI, ingresos y perfil de riesgo automáticamente para filtrar candidatos antes de la visita.",
+    description:
+      "Verificación automática de DNI, ingresos y perfil de riesgo. Filtra candidatos antes de invertir tu tiempo.",
+    highlight: "Reduce fraudes un 95%",
   },
   {
     icon: Calendar,
     title: "Gestión Automática de Visitas",
-    description: "Agenda, confirma y reprograma visitas con sincronización bidireccional con tu calendario.",
+    description:
+      "Sincronización bidireccional con Google Calendar y Outlook. Envío automático de recordatorios y confirmaciones.",
+    highlight: "Cero no-shows",
   },
   {
-    icon: FileText,
+    icon: FileCheck,
     title: "Documentación Centralizada",
-    description: "Recopila contratos, DNI, nóminas y documentos requeridos en un único lugar seguro y organizado.",
+    description: "Recogida segura de documentos sensibles: nóminas, contratos, avales. Todo en un mismo lugar cifrado.",
+    highlight: "Cumple normativa RGPD",
   },
   {
-    icon: TrendingUp,
+    icon: BarChart3,
     title: "Panel de Métricas en Tiempo Real",
-    description: "Dashboard con KPIs de conversión, tiempo de respuesta y rendimiento de cada propiedad.",
+    description: "Dashboard con KPIs de conversión, tiempo de respuesta, ocupación y rentabilidad por propiedad.",
+    highlight: "Decisiones data-driven",
   },
   {
     icon: Palette,
     title: "White-Label con tu Marca",
-    description: "Personaliza colores, logo y dominio para que la experiencia sea 100% tu agencia.",
+    description: "Personaliza emails, formularios y comunicaciones con tu logo y colores corporativos.",
+    highlight: "100% tu identidad",
   },
 ]
 
-export default function BenefitsGrid() {
+export function BenefitsGrid() {
   return (
-    <section id="beneficios" className="py-20 md:py-32">
+    <section id="beneficios" className="py-16 lg:py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 text-balance">
-            Todo lo que Necesitas para Automatizar tus Alquileres
+        <div className="text-center max-w-3xl mx-auto mb-12 lg:mb-16">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground text-balance">
+            Todo lo que necesitas para <span className="text-primary">escalar tu agencia</span>
           </h2>
-          <p className="text-lg text-muted-foreground text-pretty">
-            Gestiona todo el proceso desde la captación del lead hasta el contrato firmado, sin intervención manual.
+          <p className="mt-4 text-lg text-muted-foreground text-pretty">
+            Automatiza las tareas repetitivas y enfócate en lo que importa: cerrar contratos y hacer crecer tu negocio.
           </p>
         </div>
 
-        {/* Benefits Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {benefits.map((benefit, index) => (
-            <div
-              key={index}
-              className="group p-6 bg-card rounded-2xl border border-border hover:shadow-lg hover:border-primary/30 transition-all duration-300"
-            >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <benefit.icon className="w-6 h-6 text-primary" />
+        {/* Benefits Bento Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+          {benefits.map((benefit, index) => {
+            const Icon = benefit.icon
+            const isLarge = index === 0 || index === 3
+
+            return (
+              <div
+                key={benefit.title}
+                className={`group relative bg-card rounded-2xl border border-border p-6 lg:p-8 hover:border-primary/30 hover:shadow-lg transition-all duration-300 ${
+                  isLarge ? "md:col-span-2 lg:col-span-1" : ""
+                }`}
+              >
+                {/* Icon */}
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                  <Icon className="w-6 h-6 text-primary" />
+                </div>
+
+                {/* Content */}
+                <h3 className="text-xl font-semibold text-foreground mb-2">{benefit.title}</h3>
+                <p className="text-muted-foreground leading-relaxed mb-4">{benefit.description}</p>
+
+                {/* Highlight Badge */}
+                <div className="inline-flex items-center px-3 py-1 rounded-full bg-secondary text-sm font-medium text-foreground">
+                  {benefit.highlight}
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">{benefit.title}</h3>
-              <p className="text-muted-foreground text-pretty">{benefit.description}</p>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </section>

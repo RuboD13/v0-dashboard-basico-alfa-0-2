@@ -5,9 +5,17 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
 
-export default function Navbar() {
+const navLinks = [
+  { href: "#como-funciona", label: "Cómo Funciona" },
+  { href: "#beneficios", label: "Beneficios" },
+  { href: "#precios", label: "Precios" },
+  { href: "#testimonios", label: "Testimonios" },
+  { href: "#faq", label: "FAQ" },
+]
+
+export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,105 +28,87 @@ export default function Navbar() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-card/95 backdrop-blur-md shadow-sm" : "bg-transparent"
+        isScrolled ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border" : "bg-transparent"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-white font-bold text-lg">R</span>
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="w-5 h-5 text-primary-foreground"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path d="M9 22V12h6v10" />
+              </svg>
             </div>
             <span className="text-xl font-bold text-foreground">RentAFlow</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link
-              href="#beneficios"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Beneficios
-            </Link>
-            <Link
-              href="#como-funciona"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cómo Funciona
-            </Link>
-            <Link
-              href="#precios"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Precios
-            </Link>
-            <Link
-              href="#testimonios"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Testimonios
-            </Link>
+          <div className="hidden lg:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
 
           {/* CTA Buttons */}
-          <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              Iniciar Sesión
+          <div className="hidden lg:flex items-center gap-3">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="#contacto">Iniciar Sesión</Link>
             </Button>
-            <Button size="sm" className="bg-accent hover:bg-accent/90">
-              Reservar Demo
+            <Button size="sm" asChild>
+              <Link href="#contacto">Reservar Demo</Link>
             </Button>
           </div>
 
           {/* Mobile Menu Button */}
-          <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          <button
+            className="lg:hidden p-2 text-foreground"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-card border-t border-border">
-          <div className="px-4 py-6 space-y-4">
-            <Link
-              href="#beneficios"
-              className="block text-sm font-medium text-muted-foreground hover:text-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Beneficios
-            </Link>
-            <Link
-              href="#como-funciona"
-              className="block text-sm font-medium text-muted-foreground hover:text-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Cómo Funciona
-            </Link>
-            <Link
-              href="#precios"
-              className="block text-sm font-medium text-muted-foreground hover:text-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Precios
-            </Link>
-            <Link
-              href="#testimonios"
-              className="block text-sm font-medium text-muted-foreground hover:text-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Testimonios
-            </Link>
-            <div className="pt-4 space-y-2">
-              <Button variant="outline" className="w-full bg-transparent">
-                Iniciar Sesión
-              </Button>
-              <Button className="w-full bg-accent hover:bg-accent/90">Reservar Demo</Button>
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden py-4 border-t border-border bg-background">
+            <div className="flex flex-col gap-3">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <div className="flex flex-col gap-2 px-4 pt-4 border-t border-border">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="#contacto">Iniciar Sesión</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href="#contacto">Reservar Demo</Link>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </nav>
   )
 }

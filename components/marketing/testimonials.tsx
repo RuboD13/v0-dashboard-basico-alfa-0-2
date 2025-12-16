@@ -2,73 +2,74 @@ import { Star } from "lucide-react"
 
 const testimonials = [
   {
-    name: "Carlos Fernández",
-    role: "Director",
-    company: "Inmobiliaria Madrid Centro",
-    content:
-      "RentAFlow nos ha ahorrado 3 horas diarias en gestión manual. La validación IA de inquilinos es increíblemente precisa.",
-    avatar: "/diverse-businessman.png",
+    quote:
+      "RentAFlow nos ha permitido gestionar el triple de leads con el mismo equipo. La IA responde en segundos y los inquilinos llegan ya filtrados.",
+    author: "Laura Martínez",
+    role: "Directora de Operaciones",
+    company: "Inmobiliaria Sol",
     rating: 5,
+    avatar: "LM",
   },
   {
-    name: "Ana Rodríguez",
-    role: "Agente Inmobiliaria",
-    company: "Barcelona Properties",
-    content:
-      "Desde que usamos RentAFlow, nuestra tasa de conversión aumentó un 15%. Los leads llegan mejor calificados.",
-    avatar: "/confident-businesswoman.png",
+    quote:
+      "Antes perdíamos horas coordinando visitas. Ahora el sistema lo hace todo: agenda, recuerda y hasta pide feedback. Increíble.",
+    author: "Carlos Ruiz",
+    role: "Agente Senior",
+    company: "Fincas Barcelona",
     rating: 5,
+    avatar: "CR",
   },
   {
-    name: "Miguel Sánchez",
-    role: "Propietario",
-    company: "Gestión de Alquileres Premium",
-    content: "La automatización de visitas y recordatorios es fantástica. Ya no perdemos tiempo con no-shows.",
-    avatar: "/property-owner.jpg",
+    quote:
+      "La gestión de documentos era un caos. Con RentAFlow tenemos todo centralizado, cifrado y listo para firmar. Cumplimos RGPD sin esfuerzo.",
+    author: "Ana López",
+    role: "CEO",
+    company: "AlquilaYa",
     rating: 5,
+    avatar: "AL",
   },
 ]
 
-export default function Testimonials() {
+export function Testimonials() {
   return (
-    <section id="testimonios" className="py-20 md:py-32">
+    <section id="testimonios" className="py-16 lg:py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 text-balance">
-            Amado por Agencias Inmobiliarias en Toda España
+        <div className="text-center max-w-3xl mx-auto mb-12 lg:mb-16">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground text-balance">
+            Lo que dicen nuestros <span className="text-primary">clientes</span>
           </h2>
-          <p className="text-lg text-muted-foreground text-pretty">
-            Más de 200 agencias confían en RentAFlow para automatizar sus procesos de alquiler.
+          <p className="mt-4 text-lg text-muted-foreground text-pretty">
+            Más de 500 agencias ya confían en RentAFlow para automatizar su gestión de alquileres.
           </p>
         </div>
 
         {/* Testimonials Grid */}
-        <div className="grid md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
-            <div key={index} className="p-8 bg-card rounded-2xl border border-border hover:shadow-lg transition-shadow">
-              {/* Rating Stars */}
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+          {testimonials.map((testimonial) => (
+            <div key={testimonial.author} className="bg-card rounded-2xl border border-border p-6 lg:p-8 flex flex-col">
+              {/* Rating */}
               <div className="flex gap-1 mb-4">
-                {Array.from({ length: testimonial.rating }).map((_, idx) => (
-                  <Star key={idx} className="w-5 h-5 fill-accent text-accent" />
+                {[...Array(testimonial.rating)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-chart-4 text-chart-4" />
                 ))}
               </div>
 
-              {/* Testimonial Content */}
-              <p className="text-foreground mb-6 text-pretty">"{testimonial.content}"</p>
+              {/* Quote */}
+              <blockquote className="text-foreground leading-relaxed mb-6 flex-grow">
+                &ldquo;{testimonial.quote}&rdquo;
+              </blockquote>
 
-              {/* Author Info */}
-              <div className="flex items-center gap-4">
-                <img
-                  src={testimonial.avatar || "/placeholder.svg"}
-                  alt={testimonial.name}
-                  className="w-12 h-12 rounded-full bg-muted"
-                />
+              {/* Author */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+                  {testimonial.avatar}
+                </div>
                 <div>
-                  <div className="font-semibold text-foreground">{testimonial.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {testimonial.role} • {testimonial.company}
-                  </div>
+                  <p className="text-sm font-semibold text-foreground">{testimonial.author}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {testimonial.role}, {testimonial.company}
+                  </p>
                 </div>
               </div>
             </div>

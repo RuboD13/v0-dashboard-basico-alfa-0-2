@@ -1,48 +1,51 @@
-import { Button } from "@/components/ui/button"
+"use client"
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 const faqs = [
   {
     question: "¿Cuánto tiempo toma la configuración inicial?",
     answer:
-      "La configuración básica toma menos de 30 minutos. Nuestro equipo te guía paso a paso en la conexión de tus portales inmobiliarios, calendario y personalización de respuestas automáticas.",
+      "La configuración básica toma menos de 30 minutos. Nuestro equipo te guía paso a paso para conectar tus portales, calendario y configurar las respuestas automáticas. Para planes Enterprise ofrecemos onboarding personalizado.",
   },
   {
-    question: "¿Es compatible con mi CRM o software actual?",
+    question: "¿Es compatible con mi CRM actual?",
     answer:
-      "RentAFlow se integra con los principales CRMs inmobiliarios y herramientas como Idealista, Fotocasa, Google Calendar, Outlook y WhatsApp Business. También ofrecemos API para integraciones personalizadas en el plan Enterprise.",
+      "Sí, RentAFlow se integra con los principales CRMs del sector inmobiliario a través de nuestra API y Zapier. Ofrecemos integraciones nativas con Salesforce, HubSpot, Pipedrive y otros. Consulta la lista completa de integraciones.",
   },
   {
-    question: "¿Qué pasa con la seguridad y privacidad de los datos?",
+    question: "¿Qué pasa con la seguridad de los datos sensibles?",
     answer:
-      "Todos los datos están encriptados y almacenados en servidores en la UE cumpliendo con RGPD. Contamos con certificaciones de seguridad ISO 27001 y auditorías externas periódicas. Los documentos sensibles tienen acceso restringido y trazabilidad completa.",
+      "La seguridad es nuestra prioridad. Todos los documentos se cifran en reposo y en tránsito (AES-256). Cumplimos con RGPD y LOPD. Los datos se almacenan en servidores dentro de la UE con certificaciones ISO 27001.",
   },
   {
     question: "¿Puedo cancelar mi suscripción en cualquier momento?",
     answer:
-      "Sí, puedes cancelar en cualquier momento sin penalizaciones. Si cancelas, mantendrás acceso hasta el final de tu período de facturación actual y podrás exportar todos tus datos.",
+      "Sí, puedes cancelar en cualquier momento sin penalización. Tu acceso continuará hasta el final del período de facturación. Ofrecemos un mes de prueba gratis sin compromiso y sin tarjeta de crédito.",
   },
   {
-    question: "¿Qué tipo de soporte técnico incluye?",
+    question: "¿Qué soporte técnico incluye mi plan?",
     answer:
-      "Todos los planes incluyen soporte por email con respuesta en menos de 24h. Los planes Professional y Enterprise incluyen soporte prioritario con respuesta en menos de 4h. Enterprise incluye además un gestor de cuenta dedicado y soporte telefónico.",
+      "Todos los planes incluyen soporte por email con tiempo de respuesta de 24h. Los planes Professional y Enterprise incluyen soporte prioritario con chat en vivo y tiempo de respuesta de 2h. Enterprise incluye además un account manager dedicado.",
   },
   {
-    question: "¿La IA puede realmente validar inquilinos de forma confiable?",
+    question: "¿La IA puede responder en varios idiomas?",
     answer:
-      "Nuestra IA analiza documentos (DNI, nóminas, contratos) con un 98% de precisión. Sin embargo, siempre recomendamos que un humano revise y apruebe antes de proceder con la visita. La IA acelera el proceso pero tú mantienes el control final.",
+      "Sí, nuestra IA soporta español, catalán, inglés, francés y alemán. Detecta automáticamente el idioma del lead y responde en el mismo idioma, o puedes configurar un idioma por defecto para cada propiedad.",
   },
 ]
 
-export default function FAQSection() {
+export function FAQSection() {
   return (
-    <section className="py-20 md:py-32 bg-muted/30">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="faq" className="py-16 lg:py-24 bg-secondary/30">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 text-balance">Preguntas Frecuentes</h2>
-          <p className="text-lg text-muted-foreground text-pretty">
-            ¿Tienes dudas? Aquí respondemos las preguntas más comunes.
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground text-balance">
+            Preguntas Frecuentes
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground text-pretty">
+            Todo lo que necesitas saber antes de empezar.
           </p>
         </div>
 
@@ -52,21 +55,15 @@ export default function FAQSection() {
             <AccordionItem
               key={index}
               value={`item-${index}`}
-              className="bg-card border border-border rounded-xl px-6 data-[state=open]:shadow-lg"
+              className="bg-card rounded-xl border border-border px-6 data-[state=open]:border-primary/30"
             >
-              <AccordionTrigger className="text-left font-semibold text-foreground hover:text-primary">
+              <AccordionTrigger className="text-left text-foreground hover:no-underline py-5">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-pretty">{faq.answer}</AccordionContent>
+              <AccordionContent className="text-muted-foreground pb-5 leading-relaxed">{faq.answer}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
-
-        {/* Contact CTA */}
-        <div className="text-center mt-12">
-          <p className="text-muted-foreground mb-4">¿No encuentras la respuesta que buscas?</p>
-          <Button variant="outline">Contactar con Soporte</Button>
-        </div>
       </div>
     </section>
   )
